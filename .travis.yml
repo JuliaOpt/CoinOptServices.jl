@@ -12,8 +12,7 @@ env:
 before_install:
   - if [ `uname` = "Linux" ]; then
       sudo apt-get install gfortran -y;
-    elif [ `uname` = "Darwin" ]; then
-      brew install pkg-config;
+#    elif [ `uname` = "Darwin" ]; then
     fi
 # uncomment the following lines to override the default test script
 #script:

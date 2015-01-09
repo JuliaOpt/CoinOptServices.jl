@@ -42,7 +42,7 @@ ENV2 = copy(ENV)
         --with-ipopt-lib="-L$(Pkg.dir("Ipopt","deps","usr","lib")) -lipopt"`
 end
 @osx_only begin
-    ENV2["PKG_CONFIG_PATH"] = joinpath(Homebrew.prefix(),"lib","pkgconfig"))
+    ENV2["PKG_CONFIG_PATH"] = joinpath(Homebrew.prefix(),"lib","pkgconfig")
     configflags = `--with-coinutils-lib="-L$(joinpath(Homebrew.prefix(),"lib")) -lCoinUtils"
         --with-coinutils-incdir=$(joinpath(Homebrew.prefix(),"include","coin"))
         --with-osi-lib="-L$(joinpath(Homebrew.prefix(),"lib")) -lOsi"

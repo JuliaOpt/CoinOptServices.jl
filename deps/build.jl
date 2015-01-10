@@ -24,6 +24,9 @@ prefix = joinpath(BinDeps.depsdir(libOS), "usr")
 patchdir = BinDeps.depsdir(libOS)
 srcdir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version")
 
+rpath = ""
+@linux_only rpath = "LDFLAGS=-Wl,--rpath,$(joinpath(prefix,"lib"))"
+
 provides(SimpleBuild,
     (@build_steps begin
         GetSources(libOS)
@@ -46,8 +49,7 @@ provides(SimpleBuild,
                 `./get.Mumps`
             end
             `cat $patchdir/OS-clang.patch` |> `patch -p1`
-            `./configure --prefix=$prefix --enable-dependency-linking
-                LDFLAGS=-Wl,--rpath,$(joinpath(prefix,"lib"))
+            `./configure --prefix=$prefix --enable-dependency-linking $rpath
                 coin_skip_warn_cflags=yes coin_skip_warn_cxxflags=yes coin_skip_warn_fflags=yes`
             `make` |> "make.log"
             `make -j1 install`

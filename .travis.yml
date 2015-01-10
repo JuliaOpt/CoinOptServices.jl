@@ -15,6 +15,7 @@ before_install:
     fi
 # uncomment the following lines to override the default test script
 script:
+  - rm -f ~/julia/lib/julia/libgfortran.so.3
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia --check-bounds=yes -e 'versioninfo(); Pkg.clone(pwd()); Pkg.build("OptimizationServices"); using BinDeps; BinDeps.debug("OptimizationServices"); println(DL_LOAD_PATH); Pkg.test("OptimizationServices")'
   - julia -e 'dlopen("/home/travis/.julia/v0.4/OptimizationServices/deps/usr/lib/libOS.so")'

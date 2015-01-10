@@ -45,7 +45,7 @@ provides(SimpleBuild,
                 --with-coinutils-incdir=$(joinpath(cbcdir,"include","coin"))
                 --with-osi-lib="-L$(joinpath(cbcdir,"lib")) -lOsi -lCoinUtils"
                 --with-osi-incdir=$(joinpath(cbcdir,"include","coin"))
-                --with-clp-lib="-L$(joinpath(cbcdir,"lib")) -lClp"
+                --with-clp-lib="-L$(joinpath(cbcdir,"lib")) -lClp -lOsiClp"
                 --with-clp-incdir=$(joinpath(cbcdir,"include","coin"))
                 --with-cgl-lib="-L$(joinpath(cbcdir,"lib")) -lCgl"
                 --with-cgl-incdir=$(joinpath(cbcdir,"include","coin"))

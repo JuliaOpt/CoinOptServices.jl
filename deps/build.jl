@@ -39,6 +39,7 @@ provides(SimpleBuild,
         GetSources(libOS)
         @build_steps begin
             ChangeDirectory(srcdir)
+            `cat $patchdir/OS-clang.patch` |> `patch -p1`
             setenv(`./configure --prefix=$prefix --enable-dependency-linking
                 --with-coinutils-lib="-L$(joinpath(cbcdir,"lib")) -lCoinUtils"
                 --with-coinutils-incdir=$(joinpath(cbcdir,"include","coin"))

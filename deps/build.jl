@@ -11,6 +11,8 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
 @windows_only begin
     #using WinRPM
     #provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
+    # TODO until WinRPM is all ready, download win32 binary of CoinAll?
+    # May be impossible to satisfy BinDeps library_dependency for win64 Julia in that case
 end
 
 @osx_only begin
@@ -45,7 +47,9 @@ provides(SimpleBuild,
             end
             `cat $patchdir/OS-clang.patch` |> `patch -p1`
             `./configure --prefix=$prefix --enable-dependency-linking`
-            `make install`
+            `make`
+            `make -j1 install`
+            `make test`
         end
     end), [libOS], os = :Unix)
 

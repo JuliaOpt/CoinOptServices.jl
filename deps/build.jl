@@ -15,7 +15,6 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
     #provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
     cbcdir = joinpath(WinRPM.installdir, "usr", Sys.MACHINE, "sys-root", "mingw", "bin")
     ipoptdir = cbcdir
-    libgfortran = ""
 end
 
 @osx_only begin
@@ -23,15 +22,11 @@ end
     #provides(Homebrew.HB, "OptimizationServices", [libOS], os = :Darwin)
     cbcdir = Homebrew.prefix()
     ipoptdir = cbcdir
-    # need this to build from source - bottled Ipopt has Homebrew.jl
-    # paths to private gcc in its pkg-config files
-    libgfortran = "-L" * joinpath(strip(readall(`brew --prefix`)), "lib")
 end
 
 @linux_only begin
     cbcdir = Pkg.dir("Cbc", "deps", "usr")
     ipoptdir = Pkg.dir("Ipopt", "deps", "usr")
-    libgfortran = ""
 end
 
 prefix = joinpath(BinDeps.depsdir(libOS), "usr")
@@ -39,8 +34,8 @@ patchdir = BinDeps.depsdir(libOS)
 srcdir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version")
 
 ENV2 = copy(ENV)
-#@unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbcdir, "lib", "pkgconfig") *
-#    ":" * joinpath(ipoptdir, "lib", "pkgconfig")
+@unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbcdir, "lib", "pkgconfig") *
+    ":" * joinpath(ipoptdir, "lib", "pkgconfig")
 
 provides(SimpleBuild,
     (@build_steps begin
@@ -48,7 +43,7 @@ provides(SimpleBuild,
         @build_steps begin
             ChangeDirectory(srcdir)
             `cat $patchdir/OS-clang.patch` |> `patch -p1`
-            setenv(`./configure --prefix=$prefix --enable-dependency-linking --disable-pkg-config
+            setenv(`./configure --prefix=$prefix --enable-dependency-linking
                 --with-coinutils-lib="-L$(joinpath(cbcdir,"lib")) -lCoinUtils"
                 --with-coinutils-incdir=$(joinpath(cbcdir,"include","coin"))
                 --with-osi-lib="-L$(joinpath(cbcdir,"lib")) -lOsi -lCoinUtils"

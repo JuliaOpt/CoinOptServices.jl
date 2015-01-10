@@ -56,7 +56,7 @@ provides(SimpleBuild,
                 --with-blas="-L$(joinpath(ipoptdir,"lib")) -lcoinblas"
                 --with-lapack="-L$(joinpath(ipoptdir,"lib")) -lcoinlapack"
                 --with-mumps-lib="-L$(joinpath(ipoptdir,"lib")) -lcoinmumps"
-                --with-ipopt-lib="-L$(joinpath(ipoptdir,"lib")) -lipopt"`, ENV2)
+                --with-ipopt-lib="-L$(joinpath(ipoptdir,"lib")) -lipopt -lgfortran.3"`, ENV2)
             `make install`
         end
     end), [libOS], os = :Unix)

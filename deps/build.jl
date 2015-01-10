@@ -13,18 +13,25 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
 @windows_only begin
     using WinRPM
     #provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
+    cbcdir = joinpath(WinRPM.installdir, "usr", Sys.MACHINE, "sys-root", "mingw", "bin")
+    ipoptdir = cbcdir
+    libgfortran = ""
 end
 
 @osx_only begin
     using Homebrew
     #provides(Homebrew.HB, "OptimizationServices", [libOS], os = :Darwin)
     cbcdir = Homebrew.prefix()
-    ipoptdir = Homebrew.prefix()
+    ipoptdir = cbcdir
+    # need this to build from source - bottled Ipopt has Homebrew.jl
+    # paths to private gcc in its pkg-config files
+    libgfortran = "-L" * joinpath(strip(readall(`brew --prefix`)), "lib")
 end
 
 @linux_only begin
-    cbcdir = Pkg.dir("Cbc","deps","usr")
-    ipoptdir = Pkg.dir("Ipopt","deps","usr")
+    cbcdir = Pkg.dir("Cbc", "deps", "usr")
+    ipoptdir = Pkg.dir("Ipopt", "deps", "usr")
+    libgfortran = ""
 end
 
 prefix = joinpath(BinDeps.depsdir(libOS), "usr")
@@ -32,8 +39,8 @@ patchdir = BinDeps.depsdir(libOS)
 srcdir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version")
 
 ENV2 = copy(ENV)
-@unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbcdir,"lib","pkgconfig") *
-    ":" * joinpath(ipoptdir,"lib","pkgconfig")
+@unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbcdir, "lib", "pkgconfig") *
+    ":" * joinpath(ipoptdir, "lib", "pkgconfig")
 
 provides(SimpleBuild,
     (@build_steps begin
@@ -55,7 +62,7 @@ provides(SimpleBuild,
                 --with-blas="-L$(joinpath(ipoptdir,"lib")) -lcoinblas"
                 --with-lapack="-L$(joinpath(ipoptdir,"lib")) -lcoinlapack"
                 --with-mumps-lib="-L$(joinpath(ipoptdir,"lib")) -lcoinmumps"
-                --with-ipopt-lib="-L$(joinpath(ipoptdir,"lib")) -lipopt"`, ENV2)
+                --with-ipopt-lib="-L$(joinpath(ipoptdir,"lib")) -lipopt $libgfortran"`, ENV2)
             `make install`
         end
     end), [libOS], os = :Unix)

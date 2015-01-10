@@ -23,6 +23,7 @@ end
     cbcdir = Homebrew.prefix()
     ipoptdir = cbcdir
     # fixup ipopt.pc
+    run(`chmod a+x $(joinpath(ipoptdir, "lib", "pkgconfig", "ipopt.pc"))`)
     download("https://gist.githubusercontent.com/staticfloat/a0b360cf59f12c973064/raw/93aa7f050b02dad31a391d4ec259d186c6b2c607/ipopt.pc",
         joinpath(ipoptdir, "lib", "pkgconfig", "ipopt.pc"))
 end

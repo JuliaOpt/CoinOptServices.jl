@@ -27,6 +27,22 @@ provides(SimpleBuild,
         GetSources(libOS)
         @build_steps begin
             ChangeDirectory(srcdir)
+            @build_steps begin
+                ChangeDirectory(joinpath(srcdir, "ThirdParty", "ASL"))
+                `./get.ASL`
+            end
+            @build_steps begin
+                ChangeDirectory(joinpath(srcdir, "ThirdParty", "Blas"))
+                `./get.Blas`
+            end
+            @build_steps begin
+                ChangeDirectory(joinpath(srcdir, "ThirdParty", "Lapack"))
+                `./get.Lapack`
+            end
+            @build_steps begin
+                ChangeDirectory(joinpath(srcdir, "ThirdParty", "Mumps"))
+                `./get.Mumps`
+            end
             `cat $patchdir/OS-clang.patch` |> `patch -p1`
             `./configure --prefix=$prefix --enable-dependency-linking`
             `make install`

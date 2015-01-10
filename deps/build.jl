@@ -47,7 +47,7 @@ provides(SimpleBuild,
             end
             `cat $patchdir/OS-clang.patch` |> `patch -p1`
             `./configure --prefix=$prefix --enable-dependency-linking`
-            `make` > "make.log"
+            `make` .> "make.log"
             `make -j1 install`
             `make test`
         end

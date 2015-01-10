@@ -3,7 +3,7 @@ os:
   - linux
   - osx
 julia:
-  - release
+#  - release
   - nightly
 notifications:
   email: false
@@ -14,6 +14,13 @@ before_install:
       sudo apt-get install gfortran -y;
     fi
 # uncomment the following lines to override the default test script
-#script:
-#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia --check-bounds=yes -e 'versioninfo(); Pkg.clone(pwd()); Pkg.build("OptimizationServices"); using BinDeps; BinDeps.debug("OptimizationServices"); println(DL_LOAD_PATH); Pkg.test("OptimizationServices")'
+  - julia -e 'dlopen("/home/travis/.julia/v0.4/OptimizationServices/deps/usr/lib/libOS.so")'
+  - ls -la /home/travis/.julia/v0.4/OptimizationServices/deps/usr/lib/
+  - ldd /home/travis/.julia/v0.4/OptimizationServices/deps/usr/lib/libOS.so
+  - readelf -d /home/travis/.julia/v0.4/OptimizationServices/deps/usr/lib/libOS.so
+  - julia -e 'dlopen("/home/travis/.julia/v0.4/OptimizationServices/deps/usr/lib/libOS.so")'
+  
 #  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("OptimizationServices"); Pkg.test("OptimizationServices")'

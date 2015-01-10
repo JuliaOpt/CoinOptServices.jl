@@ -1,5 +1,7 @@
 using BinDeps
 
+BinDeps.debug("Ipopt")
+
 @BinDeps.setup
 
 libOS = library_dependency("libOS")
@@ -60,3 +62,5 @@ provides(SimpleBuild,
     end), [libOS], os = :Unix)
 
 @BinDeps.install [:libOS => :libOS]
+
+BinDeps.debug("OptimizationServices")

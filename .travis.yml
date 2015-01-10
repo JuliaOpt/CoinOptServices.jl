@@ -8,13 +8,10 @@ julia:
 notifications:
   email: false
 #env:
-#  - MAKEFLAGS="-j3"
+  - MAKEFLAGS="-j3"
 before_install:
   - if [ `uname` = "Linux" ]; then
       sudo apt-get install gfortran -y;
-    elif [ `uname` = "Darwin" ]; then
-      brew update;
-      brew upgrade gcc;
     fi
 # uncomment the following lines to override the default test script
 #script:

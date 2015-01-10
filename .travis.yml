@@ -14,6 +14,7 @@ before_install:
       sudo apt-get install gfortran -y;
     elif [ `uname` = "Darwin" ]; then
       brew update;
+      brew upgrade gcc;
     fi
 # uncomment the following lines to override the default test script
 #script:

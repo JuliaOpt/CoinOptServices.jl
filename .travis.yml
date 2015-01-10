@@ -14,7 +14,6 @@ before_install:
       sudo apt-get install gfortran -y;
     fi
 # uncomment the following lines to override the default test script
-script:
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --check-bounds=yes -e 'Pkg.clone("https://github.com/JuliaOpt/Ipopt.jl"); Pkg.checkout("Ipopt", "tk/bindeps-rpath"); Pkg.build("Ipopt")'
-  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("OptimizationServices"); Pkg.test("OptimizationServices")'
+#script:
+#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+#  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("OptimizationServices"); Pkg.test("OptimizationServices")'

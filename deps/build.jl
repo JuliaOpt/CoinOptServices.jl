@@ -25,7 +25,7 @@ patchdir = BinDeps.depsdir(libOS)
 srcdir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version")
 
 rpath = ""
-@linux_only rpath = "LDFLAGS=-Wl,--rpath,$(joinpath(prefix,"lib"))"
+#@linux_only rpath = "LDFLAGS=-Wl,--rpath,$(joinpath(prefix,"lib"))"
 
 provides(SimpleBuild,
     (@build_steps begin

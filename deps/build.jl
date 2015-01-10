@@ -48,7 +48,7 @@ provides(SimpleBuild,
         @build_steps begin
             ChangeDirectory(srcdir)
             `cat $patchdir/OS-clang.patch` |> `patch -p1`
-            setenv(`./configure --prefix=$prefix --enable-dependency-linking
+            setenv(`./configure --prefix=$prefix --enable-dependency-linking --disable-pkg-config
                 --with-coinutils-lib="-L$(joinpath(cbcdir,"lib")) -lCoinUtils"
                 --with-coinutils-incdir=$(joinpath(cbcdir,"include","coin"))
                 --with-osi-lib="-L$(joinpath(cbcdir,"lib")) -lOsi -lCoinUtils"

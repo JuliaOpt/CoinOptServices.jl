@@ -39,8 +39,8 @@ patchdir = BinDeps.depsdir(libOS)
 srcdir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version")
 
 ENV2 = copy(ENV)
-@unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbcdir, "lib", "pkgconfig") *
-    ":" * joinpath(ipoptdir, "lib", "pkgconfig")
+#@unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbcdir, "lib", "pkgconfig") *
+#    ":" * joinpath(ipoptdir, "lib", "pkgconfig")
 
 provides(SimpleBuild,
     (@build_steps begin
@@ -62,7 +62,7 @@ provides(SimpleBuild,
                 --with-blas="-L$(joinpath(ipoptdir,"lib")) -lcoinblas"
                 --with-lapack="-L$(joinpath(ipoptdir,"lib")) -lcoinlapack"
                 --with-mumps-lib="-L$(joinpath(ipoptdir,"lib")) -lcoinmumps"
-                --with-ipopt-lib="-L$(joinpath(ipoptdir,"lib")) -lipopt $libgfortran"`, ENV2)
+                --with-ipopt-lib="-L$(joinpath(ipoptdir,"lib")) -lipopt"`, ENV2)
             `make install`
         end
     end), [libOS], os = :Unix)

@@ -46,7 +46,8 @@ provides(SimpleBuild,
                 `./get.Mumps`
             end
             `cat $patchdir/OS-clang.patch` |> `patch -p1`
-            `./configure --prefix=$prefix --enable-dependency-linking`
+            `./configure --prefix=$prefix --enable-dependency-linking
+                coin_skip_warn_cflags=yes coin_skip_warn_cxxflags=yes coin_skip_warn_fflags=yes`
             `make` |> "make.log"
             `make -j1 install`
             `make test`

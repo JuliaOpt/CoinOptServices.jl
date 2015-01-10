@@ -22,10 +22,6 @@ end
     #provides(Homebrew.HB, "OptimizationServices", [libOS], os = :Darwin)
     cbcdir = Homebrew.prefix()
     ipoptdir = cbcdir
-    # fixup ipopt.pc
-    rm(joinpath(ipoptdir, "lib", "pkgconfig", "ipopt.pc"))
-    download("https://gist.githubusercontent.com/tkelman/ef929966684db2466592/raw/088df134829e025fb9fa2bbb88d509ee9499a81b/ipopt.pc",
-        joinpath(ipoptdir, "lib", "pkgconfig", "ipopt.pc"))
 end
 
 @linux_only begin

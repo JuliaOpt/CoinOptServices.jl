@@ -48,11 +48,14 @@ and/or contribute, you can install the package by running:
     julia> Pkg.clone("https://github.com/tkelman/OptimizationServices.jl")
     julia> Pkg.build("OptimizationServices")
 
-~~The plan is to have OptimizationServices, CppAD, Bonmin, Couenne, and a few
-other solvers that do not yet have Julia bindings build from source on Linux
-or OSX, assuming Ipopt.jl and Cbc.jl have already been successfully installed
-and reusing the binaries for those solvers.~~ Due to difficulties with BinDeps,
-the package currently builds its own copies of Cbc and Ipopt from source on
-Linux and OSX. On Windows it will download a Win32 binary of
-[CoinAll](https://projects.coin-or.org/CoinBinary) initially, likely
-switching to [WinRPM.jl](https://github.com/JuliaLang/WinRPM.jl) later.
+The current BinDeps setup has OptimizationServices, CppAD, Bonmin, Couenne,
+and a few other solvers (DyLP, Vol, SYMPHONY, Bcp) that do not yet have Julia
+bindings build from source on Linux or OSX, assuming Ipopt.jl and Cbc.jl have
+already been successfully installed and reusing the binaries for those solvers.
+If you are using the generic Linux binaries of Julia, note that there is an
+[issue with libgfortran](https://github.com/JuliaLang/julia/pull/8442#issuecomment-69449027).
+You may need to delete the bundled ``lib/julia/libgfortran.so.3`` for Ipopt.jl
+and this package to work correctly. On Windows the plan is for this package to
+download a Win32 binary of [CoinAll](https://projects.coin-or.org/CoinBinary)
+initially, likely switching to [WinRPM.jl](https://github.com/JuliaLang/WinRPM.jl)
+later.

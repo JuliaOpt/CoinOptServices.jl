@@ -13,7 +13,7 @@ before_install:
   - if [ `uname` = "Linux" ]; then
       sudo apt-get install gfortran -y;
     fi
-  - rm -f ~/julia/lib/julia/libgfortran.so.3
+#  - rm -f ~/julia/lib/julia/libgfortran.so.3
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi

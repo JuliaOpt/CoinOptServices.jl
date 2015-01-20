@@ -2,7 +2,7 @@ using BinDeps
 
 @BinDeps.setup
 
-libOS = library_dependency("libOS")
+libOS = library_dependency("libOS", aliases=["libOS-6"])
 version = "2.8.4"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz"),

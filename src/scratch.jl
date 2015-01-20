@@ -49,7 +49,11 @@ MathProgBase.constr_expr(d, 4)
 
 using Compat
 
-osnl_binary = @compat Dict(
+jl2osnl_varargs = @compat Dict(
+    :+     => "sum",
+    :*     => "prod")
+
+jl2osnl_binary = @compat Dict(
     :+     => "plus",
     :.+    => "plus",
     :-     => "minus",
@@ -66,7 +70,7 @@ osnl_binary = @compat Dict(
     :.^    => "power",
     :log   => "log")
 
-osnl_unary = @compat Dict(
+jl2osnl_unary = @compat Dict(
     :-     => "negate",
     :√     => "sqrt",
     :ceil  => "ceiling",
@@ -88,13 +92,13 @@ osnl_unary = @compat Dict(
 for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
            :sin, :sinh, :cos, :cosh, :tan, :tanh,
            :cot, :coth, :sec, :sech, :csc, :csch]
-    osnl_unary[op] = string(op)
+    jl2osnl_unary[op] = string(op)
 end
 
 # ternary :ifelse => "if" ?
 # comparison ops
 
-osil_vartypes = @compat Dict(:Cont => "C", :Int => "I", :Bin => "B",
+jl2osil_vartypes = @compat Dict(:Cont => "C", :Int => "I", :Bin => "B",
     :SemiCont => "D", :SemiInt => "J", :Fixed => "C")
 # assuming lb == ub for all occurrences of :Fixed vars
 
@@ -125,10 +129,8 @@ set_attribute(variables, "numberOfVariables", "$numVars")
 for i = 1:numVars
     vari = new_child(variables, "var")
     set_attribute(vari, "name", varNames[i])
-    set_attribute(vari, "type", osil_vartypes[varCat[i]])
-    if isfinite(varLower[i])
-        set_attribute(vari, "lb", varLower[i])
-    end
+    set_attribute(vari, "type", jl2osil_vartypes[varCat[i]])
+    set_attribute(vari, "lb", varLower[i]) # lb defaults to 0 if not specified!
     if isfinite(varUpper[i])
         set_attribute(vari, "ub", varUpper[i])
     end
@@ -136,14 +138,90 @@ end
 numConstr = length(d.m.linconstr) + length(d.m.quadconstr) + length(d.m.nlpdata.nlconstr)
 # JuMP's getNumConstraints returns only the number of linear constraints!
 
+if true # switch this to disable assertions
+    macro assertform(x, y)
+        msg = "$x expected to be $y, was :"
+        :($x == $y ? nothing : error($msg * string($x)))
+    end
+else
+    macro assertform(x, y)
+    end
+end
+
+#=
+function linexpr2sparsevec(ex)
+    # convert a linear expression with possibly unordered and/or duplicated
+    # indices into a sparse vector representation with sorted, strictly
+    # increasing indices by combining duplicates
+    # returns (idx::Vector{Int}, vals::Vector{Float64}, constant::Float64)
+    @assertform ex.head :call
+    exargs = ex.args
+    @assertform exargs[1] :+
+    nelem = length(exargs) - 1
+    idxorig = Array(Int, nelem)
+    valorig = Array(Float64, nelem)
+    for i = 1:nelem
+        (idxorig[i], valorig[i]) = elem2pair(exargs[i+1])
+    end
+    idx = Array(Int, nelem) # preallocate
+    val = Array(Float64, nelem) # preallocate
+    constant = 0.0
+    ndupes = 0
+    permvec = sortperm(idxorig)
+
+end
+=#
+
+function addObjCoef!(obj, elem::Expr, constant, numconstants)
+    # add an objective coefficient from elem to obj,
+    # where elem is of the form :(val * x[idx])
+    @assertform elem.head :call
+    elemargs = elem.args
+    @assertform elemargs[1] :*
+    @assertform length(elemargs) 3
+    elemarg3 = elemargs[3]
+    @assertform elemarg3.head :ref
+    @assertform elemarg3.args[1] :x
+    coef = new_child(obj, "coef")
+    set_attribute(coef, "idx", elemarg3.args[2] - 1) # OSiL is 0-based
+    add_text(coef, string(elemargs[2]))
+    # keep a running total for constant offset
+    return (constant, numconstants)
+end
+function addObjCoef!(obj, elem::Float64, constant, numconstants)
+    # for anything not an Expr, add it to running total for constant offset
+    # currently restricting to ::Float64 for testing, could loosen that later
+    return (constant + elem, numconstants + 1)
+end
+
 objectives = new_child(instanceData, "objectives")
 set_attribute(objectives, "numberOfObjectives", "1") # can MathProgBase do multi-objective problems?
 obj = new_child(objectives, "obj")
 set_attribute(obj, "maxOrMin", lowercase(string(d.m.objSense)))
-set_attribute(obj, "numberOfObjCoef", "0")
-# TODO get coefficients for linear objectives, constraints
+# need to create an OsilMathProgModel type with state, set sense during loadnonlinearproblem!
+# then implement MathProgBase.getsense for reading it
+objexpr = MathProgBase.obj_expr(d)
+if MathProgBase.isobjlinear(d)
+    @assertform objexpr.head :call
+    objexprargs = objexpr.args
+    @assertform objexprargs[1] :+
+    (constant, numconstants) = (0.0, 0)
+    for i = 2:length(objexprargs)
+        # TODO: check if we need to do anything about duplicates or sorting!
+        (constant, numconstants) =
+            addObjCoef!(obj, objexprargs[i], constant, numconstants)
+    end
+    set_attribute(obj, "numberOfObjCoef", length(objexprargs)-numconstants-1)
+    if constant != 0.0
+        set_attribute(obj, "constant", constant)
+    end
+else
+    set_attribute(obj, "numberOfObjCoef", "0")
+    # nonlinear objective goes in nonlinearExpressions, <nl idx="-1">
+end
 
 
+# writeproblem for nonlinear?
 
 
 free(xdoc)

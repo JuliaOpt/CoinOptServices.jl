@@ -40,10 +40,9 @@ various modeling languages.
 
 ## Installation
 
-This package is not yet registered, and I'll be starting with the hard work
-of managing binary dependencies across different platforms first. None of the
-code has been written in `src` yet. But if you want to see how far I've gotten
-and/or contribute, you can install the package by running:
+This package is not yet registered, the actual code is a work in progress.
+If you want to see how far I've gotten and/or contribute, you can install
+the package by running:
 
     julia> Pkg.clone("https://github.com/tkelman/OptimizationServices.jl")
     julia> Pkg.build("OptimizationServices")
@@ -55,7 +54,9 @@ already been successfully installed and reusing the binaries for those solvers.
 If you are using the generic Linux binaries of Julia, note that there is an
 [issue with libgfortran](https://github.com/JuliaLang/julia/pull/8442#issuecomment-69449027).
 You may need to delete the bundled ``lib/julia/libgfortran.so.3`` for Ipopt.jl
-and this package to work correctly. On Windows the plan is for this package to
-download a Win32 binary of [CoinAll](https://projects.coin-or.org/CoinBinary)
-initially, likely switching to [WinRPM.jl](https://github.com/JuliaLang/WinRPM.jl)
-later.
+and this package to work correctly. On Windows, binaries are downloaded via
+[WinRPM.jl](https://github.com/JuliaLang/WinRPM.jl). Currently these are
+packaged in [my personal project](https://build.opensuse.org/project/show/home:kelman:mingw-coinor)
+on the openSUSE build service, but I plan on submitting them to the official
+default repository. I will probably wait for the next round of upstream
+COIN-OR releases before doing this.

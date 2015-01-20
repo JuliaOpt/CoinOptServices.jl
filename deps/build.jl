@@ -10,9 +10,9 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
 
 @windows_only begin
     using WinRPM
-    #provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
-    # TODO until WinRPM is all ready, download win32 binary of CoinAll?
-    # May be impossible to satisfy BinDeps library_dependency for win64 Julia in that case
+    push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.1")
+    WinRPM.update()
+    provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
     cbcdir = joinpath(WinRPM.installdir, "usr", Sys.MACHINE, "sys-root", "mingw", "bin")
     ipoptdir = cbcdir
 end

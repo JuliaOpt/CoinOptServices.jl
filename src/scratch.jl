@@ -37,8 +37,9 @@ m = Model()
 @addNLConstraint(m, 1 <= log(x1/x2))
 
 
-A = JuMP.prepConstrMatrix(m)
-d = JuMP.JuMPNLPEvaluator(m, A)
+#A = JuMP.prepConstrMatrix(m)
+#d = JuMP.JuMPNLPEvaluator(m, A)
+d = JuMP.JuMPNLPEvaluator(m, JuMP.prepConstrMatrix(m))
 MathProgBase.initialize(d, [:ExprGraph]);
 MathProgBase.obj_expr(d)
 MathProgBase.constr_expr(d, 1)
@@ -140,8 +141,8 @@ numConstr = length(d.m.linconstr) + length(d.m.quadconstr) + length(d.m.nlpdata.
 
 if true # switch this to disable assertions
     macro assertform(x, y)
-        msg = "$x expected to be $y, was :"
-        :($x == $y ? nothing : error($msg * string($x)))
+        msg = "$x expected to be $y, was "
+        :($x == $y ? nothing : error($msg * repr($x)))
     end
 else
     macro assertform(x, y)
@@ -172,26 +173,28 @@ function linexpr2sparsevec(ex)
 end
 =#
 
-function addObjCoef!(obj, elem::Expr, constant, numconstants)
-    # add an objective coefficient from elem to obj,
-    # where elem is of the form :(val * x[idx])
+function elem2pair(elem::Expr)
+    # convert Expr of the form :(val * x[idx]) to (idx, val) pair
     @assertform elem.head :call
     elemargs = elem.args
     @assertform elemargs[1] :*
     @assertform length(elemargs) 3
     elemarg3 = elemargs[3]
     @assertform elemarg3.head :ref
-    @assertform elemarg3.args[1] :x
-    coef = new_child(obj, "coef")
-    set_attribute(coef, "idx", elemarg3.args[2] - 1) # OSiL is 0-based
-    add_text(coef, string(elemargs[2]))
-    # keep a running total for constant offset
-    return (constant, numconstants)
+    elemarg3args = elemarg3.args
+    @assertform elemarg3args[1] :x
+    @assertform length(elemarg3args) 2
+    return (elemarg3args[2], elemargs[2])
 end
-function addObjCoef!(obj, elem::Float64, constant, numconstants)
-    # for anything not an Expr, add it to running total for constant offset
-    # currently restricting to ::Float64 for testing, could loosen that later
-    return (constant + elem, numconstants + 1)
+
+function addObjCoef!(obj, elem::Expr)
+    # add an objective coefficient from elem to obj
+    (idx, val) = elem2pair(elem)
+    @assertform typeof(idx) Int
+    @assertform typeof(val) Float64
+    coef = new_child(obj, "coef")
+    set_attribute(coef, "idx", idx-1) # OSiL is 0-based
+    add_text(coef, string(val))
 end
 
 objectives = new_child(instanceData, "objectives")
@@ -205,20 +208,53 @@ if MathProgBase.isobjlinear(d)
     @assertform objexpr.head :call
     objexprargs = objexpr.args
     @assertform objexprargs[1] :+
-    (constant, numconstants) = (0.0, 0)
-    for i = 2:length(objexprargs)
+    for i = 2:length(objexprargs)-1
         # TODO: check if we need to do anything about duplicates or sorting!
-        (constant, numconstants) =
-            addObjCoef!(obj, objexprargs[i], constant, numconstants)
+        addObjCoef!(obj, objexprargs[i])
+    end
+    numconstants = 0
+    elem = objexprargs[end]
+    if isa(elem, Expr)
+        addObjCoef!(obj, expr)
+    else
+        # constant - assume there's at most one, and it's always at the end
+        if elem != 0.0
+            set_attribute(obj, "constant", elem)
+            numconstants = 1
+        end
     end
     set_attribute(obj, "numberOfObjCoef", length(objexprargs)-numconstants-1)
-    if constant != 0.0
-        set_attribute(obj, "constant", constant)
-    end
 else
     set_attribute(obj, "numberOfObjCoef", "0")
     # nonlinear objective goes in nonlinearExpressions, <nl idx="-1">
 end
+
+function constr2bounds(ex::Expr, sense::Symbol, rhs::Float64)
+    # return (lb, ub) for a 3-term constraint expression
+    if sense == :(<=)
+        return (-Inf, rhs)
+    elseif sense == :(>=)
+        return (rhs, Inf)
+    elseif sense == :(==)
+        return (rhs, rhs)
+    else
+        error("Unknown constraint sense $sense")
+    end
+end
+function constr2bounds(lhs::Float64, lsense::Symbol, ex::Expr, rsense::Symbol, rhs::Float64)
+    # return (lb, ub) for a 5-term range constraint expression
+    if lsense == :(<=) && rsense == :(<=)
+        return (lhs, rhs)
+    else
+        error("Unknown constraint sense $lhs $lsense $ex $rsense $rhs")
+    end
+end
+
+# create constraints section with bounds during loadnonlinearproblem!
+# assume no constant attributes on constraints
+
+
+
 
 
 # writeproblem for nonlinear?

@@ -215,7 +215,7 @@ if MathProgBase.isobjlinear(d)
     numconstants = 0
     elem = objexprargs[end]
     if isa(elem, Expr)
-        addObjCoef!(obj, expr)
+        addObjCoef!(obj, elem)
     else
         # constant - assume there's at most one, and it's always at the end
         if elem != 0.0

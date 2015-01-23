@@ -149,30 +149,6 @@ else
     end
 end
 
-#=
-function linexpr2sparsevec(ex)
-    # convert a linear expression with possibly unordered and/or duplicated
-    # indices into a sparse vector representation with sorted, strictly
-    # increasing indices by combining duplicates
-    # returns (idx::Vector{Int}, vals::Vector{Float64}, constant::Float64)
-    @assertform ex.head :call
-    exargs = ex.args
-    @assertform exargs[1] :+
-    nelem = length(exargs) - 1
-    idxorig = Array(Int, nelem)
-    valorig = Array(Float64, nelem)
-    for i = 1:nelem
-        (idxorig[i], valorig[i]) = elem2pair(exargs[i+1])
-    end
-    idx = Array(Int, nelem) # preallocate
-    val = Array(Float64, nelem) # preallocate
-    constant = 0.0
-    ndupes = 0
-    permvec = sortperm(idxorig)
-
-end
-=#
-
 function elem2pair(elem::Expr)
     # convert Expr of the form :(val * x[idx]) to (idx, val) pair
     @assertform elem.head :call
@@ -184,14 +160,12 @@ function elem2pair(elem::Expr)
     elemarg3args = elemarg3.args
     @assertform elemarg3args[1] :x
     @assertform length(elemarg3args) 2
-    return (elemarg3args[2], elemargs[2])
+    return (elemarg3args[2]::Int, elemargs[2]::Float64)
 end
 
 function addObjCoef!(obj, elem::Expr)
     # add an objective coefficient from elem to obj
     (idx, val) = elem2pair(elem)
-    @assertform typeof(idx) Int
-    @assertform typeof(val) Float64
     coef = new_child(obj, "coef")
     set_attribute(coef, "idx", idx-1) # OSiL is 0-based
     add_text(coef, string(val))
@@ -204,6 +178,7 @@ set_attribute(obj, "maxOrMin", lowercase(string(d.m.objSense)))
 # need to create an OsilMathProgModel type with state, set sense during loadnonlinearproblem!
 # then implement MathProgBase.getsense for reading it
 objexpr = MathProgBase.obj_expr(d)
+nlobj = false
 if MathProgBase.isobjlinear(d)
     @assertform objexpr.head :call
     objexprargs = objexpr.args
@@ -225,6 +200,7 @@ if MathProgBase.isobjlinear(d)
     end
     set_attribute(obj, "numberOfObjCoef", length(objexprargs)-numconstants-1)
 else
+    nlobj = true
     set_attribute(obj, "numberOfObjCoef", "0")
     # nonlinear objective goes in nonlinearExpressions, <nl idx="-1">
 end
@@ -253,6 +229,97 @@ end
 # create constraints section with bounds during loadnonlinearproblem!
 # assume no constant attributes on constraints
 
+# TODO: compare Array{Bool} vs. BitArray here
+indicator = fill!(Array(Bool, numVars), false)
+densevals = zeros(numVars)
+# assume linear constraints are all at start
+row = 1
+while MathProgBase.isconstrlinear(d, row)
+    constrexpr = MathProgBase.constr_expr(d, row)
+    @assertform constrexpr.head :comparison
+    #(lhs, rhs) = constr2bounds(constrexpr.args...)
+    constrlinpart = constrexpr.args[end - 2]
+    @assertform constrlinpart.head :call
+    constrlinargs = constrlinpart.args
+    @assertform constrlinargs[1] :+
+    # TODO: compare to JuMP approach of using a BitArray
+    # or Array{Bool} here to combine duplicates before transposing
+    for i = 2:length(constrlinargs)
+        (col, val) = elem2pair(constrlinargs[i])
+        if indicator[col]
+            densevals[col] += val
+        else
+            indicator[col] = true
+            densevals[col] = val
+        end
+    end
+    for col = 1:numVars
+        if indicator[col]
+            # populate linearConstraintCoefficients here
+
+
+            # cleanup
+            indicator[col] = false # for BitArrays, set to zero all at once?
+            #densevals[col] = 0.0 # not strictly necessary?
+        end
+    end
+    row += 1
+end
+numLinConstr = row - 1
+
+
+#=
+# first pass through linear constraints:
+# get column indices and nonzero values in each row,
+# do not sort or merge duplicate indices
+colcounts = zeros(Int, numVars)
+rowstarts_csr = [1]
+colinds_csr = Int[]
+nzvals_csr = Float64[]
+row = 1
+# assume linear constraints are all at start
+while MathProgBase.isconstrlinear(d, row)
+    constrexpr = MathProgBase.constr_expr(d, row)
+    @assertform constrexpr.head :comparison
+    #(lhs, rhs) = constr2bounds(constrexpr.args...)
+    constrlinpart = constrexpr.args[end - 2]
+    @assertform constrlinpart.head :call
+    constrlinargs = constrlinpart.args
+    @assertform constrlinargs[1] :+
+    # TODO: compare to JuMP approach of using a BitArray
+    # or Array{Bool} here to combine duplicates before transposing
+    for i = 2:length(constrlinargs)
+        (col, val) = elem2pair(constrlinargs[i])
+        colcounts[col] += 1
+        push!(colinds_csr, col)
+        push!(nzvals_csr, val)
+    end
+    push!(rowstarts_csr, rowstarts_csr[end] + length(constrlinargs) - 1)
+    row += 1
+end
+numLinConstr = row - 1
+
+# transpose from csr to csc (including duplicate indices)
+rowinds_csc = Array(Int, rowstarts_csr[end] - 1)
+nzvals_csc = Array(Float64, rowstarts_csr[end] - 1)
+colstarts_csc = Array(Int, numVars + 1)
+colstarts_csc[1] = 1
+for col = 1:numVars
+    colstarts_csc[col + 1] = colstarts_csc[col] + colcounts[col]
+end
+@assert rowstarts_csr[end] == colstarts_csc[end]
+fill!(colcounts, 0)
+for row = 1:numLinConstr
+    for i = rowstarts_csr[row] : rowstarts_csr[row+1]-1
+        col = colinds_csr[i]
+        rowinds_csc[colstarts_csc[col] + colcounts[col]] = row
+        nzvals_csc[colstarts_csc[col] + colcounts[col]] = nzvals_csr[i]
+        colcounts[col] += 1
+    end
+end
+
+# populate linearConstraintCoefficients, checking for and combining duuplicates
+=#
 
 
 

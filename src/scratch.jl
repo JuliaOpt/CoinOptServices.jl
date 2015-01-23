@@ -48,61 +48,6 @@ MathProgBase.constr_expr(d, 3)
 MathProgBase.constr_expr(d, 4)
 
 
-using Compat
-
-jl2osnl_varargs = @compat Dict(
-    :+     => "sum",
-    :*     => "prod")
-
-jl2osnl_binary = @compat Dict(
-    :+     => "plus",
-    :.+    => "plus",
-    :-     => "minus",
-    :.-    => "minus",
-    :*     => "times",
-    :.*    => "times",
-    :/     => "divide",
-    :./    => "divide",
-    :div   => "quotient",
-    :÷     => "quotient",
-    #:.÷    => "quotient", # 0.4 only?
-    :rem   => "rem",
-    :^     => "power",
-    :.^    => "power",
-    :log   => "log")
-
-jl2osnl_unary = @compat Dict(
-    :-     => "negate",
-    :√     => "sqrt",
-    :ceil  => "ceiling",
-    :log   => "ln",
-    :log10 => "log10",
-    :asin  => "arcsin",
-    :asinh => "arcsinh",
-    :acos  => "arccos",
-    :acosh => "arccosh",
-    :atan  => "arctan",
-    :atanh => "arctanh",
-    :acot  => "arccot",
-    :acoth => "arccoth",
-    :asec  => "arcsec",
-    :asech => "arcsech",
-    :acsc  => "arccsc",
-    :acsch => "arccsch")
-
-for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
-           :sin, :sinh, :cos, :cosh, :tan, :tanh,
-           :cot, :coth, :sec, :sech, :csc, :csch]
-    jl2osnl_unary[op] = string(op)
-end
-
-# ternary :ifelse => "if" ?
-# comparison ops
-
-jl2osil_vartypes = @compat Dict(:Cont => "C", :Int => "I", :Bin => "B",
-    :SemiCont => "D", :SemiInt => "J", :Fixed => "C")
-# assuming lb == ub for all occurrences of :Fixed vars
-
 using LightXML
 
 xdoc = XMLDocument()
@@ -139,29 +84,7 @@ end
 numConstr = length(d.m.linconstr) + length(d.m.quadconstr) + length(d.m.nlpdata.nlconstr)
 # JuMP's getNumConstraints returns only the number of linear constraints!
 
-if true # switch this to disable assertions
-    macro assertform(x, y)
-        msg = "$x expected to be $y, was "
-        :($x == $y ? nothing : error($msg * repr($x)))
-    end
-else
-    macro assertform(x, y)
-    end
-end
-
-function elem2pair(elem::Expr)
-    # convert Expr of the form :(val * x[idx]) to (idx, val) pair
-    @assertform elem.head :call
-    elemargs = elem.args
-    @assertform elemargs[1] :*
-    @assertform length(elemargs) 3
-    elemarg3 = elemargs[3]
-    @assertform elemarg3.head :ref
-    elemarg3args = elemarg3.args
-    @assertform elemarg3args[1] :x
-    @assertform length(elemarg3args) 2
-    return (elemarg3args[2]::Int, elemargs[2]::Float64)
-end
+using OptimizationServices
 
 function addObjCoef!(obj, elem::Expr)
     # add an objective coefficient from elem to obj
@@ -231,7 +154,7 @@ end
 
 # TODO: compare Array{Bool} vs. BitArray here
 indicator = fill!(Array(Bool, numVars), false)
-densevals = zeros(numVars)
+densevals = Array(Float64, numVars)
 # assume linear constraints are all at start
 row = 1
 while MathProgBase.isconstrlinear(d, row)
@@ -242,8 +165,6 @@ while MathProgBase.isconstrlinear(d, row)
     @assertform constrlinpart.head :call
     constrlinargs = constrlinpart.args
     @assertform constrlinargs[1] :+
-    # TODO: compare to JuMP approach of using a BitArray
-    # or Array{Bool} here to combine duplicates before transposing
     for i = 2:length(constrlinargs)
         (col, val) = elem2pair(constrlinargs[i])
         if indicator[col]
@@ -260,7 +181,6 @@ while MathProgBase.isconstrlinear(d, row)
 
             # cleanup
             indicator[col] = false # for BitArrays, set to zero all at once?
-            #densevals[col] = 0.0 # not strictly necessary?
         end
     end
     row += 1

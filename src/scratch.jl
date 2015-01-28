@@ -71,9 +71,10 @@ varNames = d.m.colNames
 varCat   = d.m.colCat
 varLower = d.m.colLower
 varUpper = d.m.colUpper
-set_attribute(variables, "numberOfVariables", "$numVars")
+set_attribute(variables, "numberOfVariables", numVars)
 for i = 1:numVars
     vari = new_child(variables, "var")
+    # need to save these in an array for setvartype!
     set_attribute(vari, "name", varNames[i])
     set_attribute(vari, "type", jl2osil_vartypes[varCat[i]])
     set_attribute(vari, "lb", varLower[i]) # lb defaults to 0 if not specified!
@@ -82,17 +83,12 @@ for i = 1:numVars
     end
 end
 numConstr = length(d.m.linconstr) + length(d.m.quadconstr) + length(d.m.nlpdata.nlconstr)
-# JuMP's getNumConstraints returns only the number of linear constraints!
 
 using OptimizationServices
 
-function addObjCoef!(obj, elem::Expr)
-    # add an objective coefficient from elem to obj
-    (idx, val) = elem2pair(elem)
-    coef = new_child(obj, "coef")
-    set_attribute(coef, "idx", idx-1) # OSiL is 0-based
-    add_text(coef, string(val))
-end
+# TODO: compare BitArray vs. Array{Bool} here
+indicator = falses(numVars)
+densevals = zeros(numVars)
 
 objectives = new_child(instanceData, "objectives")
 set_attribute(objectives, "numberOfObjectives", "1") # can MathProgBase do multi-objective problems?
@@ -106,58 +102,48 @@ if MathProgBase.isobjlinear(d)
     @assertform objexpr.head :call
     objexprargs = objexpr.args
     @assertform objexprargs[1] :+
-    for i = 2:length(objexprargs)-1
-        # TODO: check if we need to do anything about duplicates or sorting!
-        addObjCoef!(obj, objexprargs[i])
+    constant = 0.0
+    for i = 2:length(objexprargs)
+        constant += addLinElem!(indicator, densevals, objexprargs[i])
     end
-    numconstants = 0
-    elem = objexprargs[end]
-    if isa(elem, Expr)
-        addObjCoef!(obj, elem)
-    else
-        # constant - assume there's at most one, and it's always at the end
-        if elem != 0.0
-            set_attribute(obj, "constant", elem)
-            numconstants = 1
-        end
+    if constant != 0.0
+        set_attribute(obj, "constant", constant)
     end
-    set_attribute(obj, "numberOfObjCoef", length(objexprargs)-numconstants-1)
+    numberOfObjCoef = 0
+    idx = findnext(indicator, 1)
+    while idx != 0
+        numberOfObjCoef += 1
+        coef = new_child(obj, "coef")
+        set_attribute(coef, "idx", idx - 1) # OSiL is 0-based
+        add_text(coef, string(densevals[idx]))
+
+        densevals[idx] = 0.0 # reset for later use in linear constraints
+        idx = findnext(indicator, idx + 1)
+    end
+    fill!(indicator, false) # for Array{Bool}, set to false one element at a time?
+    set_attribute(obj, "numberOfObjCoef", numberOfObjCoef)
 else
     nlobj = true
     set_attribute(obj, "numberOfObjCoef", "0")
     # nonlinear objective goes in nonlinearExpressions, <nl idx="-1">
 end
 
-function constr2bounds(ex::Expr, sense::Symbol, rhs::Float64)
-    # return (lb, ub) for a 3-term constraint expression
-    if sense == :(<=)
-        return (-Inf, rhs)
-    elseif sense == :(>=)
-        return (rhs, Inf)
-    elseif sense == :(==)
-        return (rhs, rhs)
-    else
-        error("Unknown constraint sense $sense")
-    end
-end
-function constr2bounds(lhs::Float64, lsense::Symbol, ex::Expr, rsense::Symbol, rhs::Float64)
-    # return (lb, ub) for a 5-term range constraint expression
-    if lsense == :(<=) && rsense == :(<=)
-        return (lhs, rhs)
-    else
-        error("Unknown constraint sense $lhs $lsense $ex $rsense $rhs")
-    end
-end
-
 # create constraints section with bounds during loadnonlinearproblem!
 # assume no constant attributes on constraints
 
-# TODO: compare Array{Bool} vs. BitArray here
-indicator = fill!(Array(Bool, numVars), false)
-densevals = Array(Float64, numVars)
 # assume linear constraints are all at start
 row = 1
-while MathProgBase.isconstrlinear(d, row)
+nextrowlinear = MathProgBase.isconstrlinear(d, row)
+if nextrowlinear
+    # has at least 1 linear constraint
+    linearConstraintCoefficients = new_child(instanceData, "linearConstraintCoefficients")
+    numberOfValues = 0
+    rowstarts = new_child(linearConstraintCoefficients, "start")
+    add_text(new_child(rowstarts, "el"), "0")
+    colIdx = new_child(linearConstraintCoefficients, "colIdx")
+    values = new_child(linearConstraintCoefficients, "value")
+end
+while nextrowlinear
     constrexpr = MathProgBase.constr_expr(d, row)
     @assertform constrexpr.head :comparison
     #(lhs, rhs) = constr2bounds(constrexpr.args...)
@@ -166,81 +152,48 @@ while MathProgBase.isconstrlinear(d, row)
     constrlinargs = constrlinpart.args
     @assertform constrlinargs[1] :+
     for i = 2:length(constrlinargs)
-        (col, val) = elem2pair(constrlinargs[i])
-        if indicator[col]
-            densevals[col] += val
-        else
-            indicator[col] = true
-            densevals[col] = val
-        end
+        addLinElem!(indicator, densevals, constrlinargs[i]) == 0.0 ||
+            error("Unexpected constant term in linear constraint")
     end
-    for col = 1:numVars
-        if indicator[col]
-            # populate linearConstraintCoefficients here
+    idx = findnext(indicator, 1)
+    while idx != 0
+        numberOfValues += 1
+        add_text(new_child(colIdx, "el"), string(idx - 1)) # OSiL is 0-based
+        add_text(new_child(values, "el"), string(densevals[idx]))
 
-
-            # cleanup
-            indicator[col] = false # for BitArrays, set to zero all at once?
-        end
+        densevals[idx] = 0.0 # reset for next row
+        idx = findnext(indicator, idx + 1)
     end
+    fill!(indicator, false) # for Array{Bool}, set to false one element at a time?
+    add_text(new_child(rowstarts, "el"), string(numberOfValues))
     row += 1
+    nextrowlinear = MathProgBase.isconstrlinear(d, row)
 end
 numLinConstr = row - 1
+if numLinConstr > 0
+    set_attribute(linearConstraintCoefficients, "numberOfValues", numberOfValues)
+end
 
-
-#=
-# first pass through linear constraints:
-# get column indices and nonzero values in each row,
-# do not sort or merge duplicate indices
-colcounts = zeros(Int, numVars)
-rowstarts_csr = [1]
-colinds_csr = Int[]
-nzvals_csr = Float64[]
-row = 1
-# assume linear constraints are all at start
-while MathProgBase.isconstrlinear(d, row)
-    constrexpr = MathProgBase.constr_expr(d, row)
-    @assertform constrexpr.head :comparison
-    #(lhs, rhs) = constr2bounds(constrexpr.args...)
-    constrlinpart = constrexpr.args[end - 2]
-    @assertform constrlinpart.head :call
-    constrlinargs = constrlinpart.args
-    @assertform constrlinargs[1] :+
-    # TODO: compare to JuMP approach of using a BitArray
-    # or Array{Bool} here to combine duplicates before transposing
-    for i = 2:length(constrlinargs)
-        (col, val) = elem2pair(constrlinargs[i])
-        colcounts[col] += 1
-        push!(colinds_csr, col)
-        push!(nzvals_csr, val)
+numberOfNonlinearExpressions = numConstr - numLinConstr + (nlobj ? 1 : 0)
+if numberOfNonlinearExpressions > 0
+    # has nonlinear objective or at least 1 nonlinear constraint
+    nonlinearExpressions = new_child(instanceData, "nonlinearExpressions")
+    set_attribute(nonlinearExpressions, "numberOfNonlinearExpressions",
+        numberOfNonlinearExpressions)
+    if nlobj
+        nl = new_child(nonlinearExpressions, "nl")
+        set_attribute(nl, "idx", "-1")
+        expr2osnl!(nl, MathProgBase.obj_expr(d))
     end
-    push!(rowstarts_csr, rowstarts_csr[end] + length(constrlinargs) - 1)
-    row += 1
-end
-numLinConstr = row - 1
-
-# transpose from csr to csc (including duplicate indices)
-rowinds_csc = Array(Int, rowstarts_csr[end] - 1)
-nzvals_csc = Array(Float64, rowstarts_csr[end] - 1)
-colstarts_csc = Array(Int, numVars + 1)
-colstarts_csc[1] = 1
-for col = 1:numVars
-    colstarts_csc[col + 1] = colstarts_csc[col] + colcounts[col]
-end
-@assert rowstarts_csr[end] == colstarts_csc[end]
-fill!(colcounts, 0)
-for row = 1:numLinConstr
-    for i = rowstarts_csr[row] : rowstarts_csr[row+1]-1
-        col = colinds_csr[i]
-        rowinds_csc[colstarts_csc[col] + colcounts[col]] = row
-        nzvals_csc[colstarts_csc[col] + colcounts[col]] = nzvals_csr[i]
-        colcounts[col] += 1
+    for row = numLinConstr + 1 : numConstr
+        nl = new_child(nonlinearExpressions, "nl")
+        set_attribute(nl, "idx", row - 1) # OSiL is 0-based
+        constrexpr = MathProgBase.constr_expr(d, row)
+        @assertform constrexpr.head :comparison
+        #(lhs, rhs) = constr2bounds(constrexpr.args...)
+        expr2osnl!(nl, constrexpr.args[end - 2])
     end
 end
-
-# populate linearConstraintCoefficients, checking for and combining duuplicates
-=#
-
 
 
 

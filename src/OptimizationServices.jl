@@ -95,9 +95,7 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     MathProgBase.initialize(d, [:ExprGraph])
 
     # clear existing problem, if defined
-    if isdefined(m, :xdoc)
-        free(m.xdoc)
-    end
+    isdefined(m, :xdoc) && free(m.xdoc)
     m.xdoc = XMLDocument()
     m.vars = Array(XMLElement, numberOfVariables)
     m.cons = Array(XMLElement, numberOfConstraints)
@@ -122,9 +120,7 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     for i = 1:numberOfVariables
         vari = new_child(variables, "var")
         set_attribute(vari, "lb", xl[i]) # lb defaults to 0 if not specified!
-        if isfinite(xu[i])
-            set_attribute(vari, "ub", xu[i])
-        end
+        isfinite(xu[i]) && set_attribute(vari, "ub", xu[i])
         m.vars[i] = vari
     end
 
@@ -148,9 +144,7 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
         for i = 2:length(objexprargs)
             constant += addLinElem!(indicator, densevals, objexprargs[i])
         end
-        if constant != 0.0
-            set_attribute(m.obj, "constant", constant)
-        end
+        (constant == 0.0) || set_attribute(m.obj, "constant", constant)
         numberOfObjCoef = 0
         idx = findnext(indicator, 1)
         while idx != 0
@@ -175,12 +169,8 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     for i = 1:numberOfConstraints
         coni = new_child(constraints, "con")
         # assume no constant attributes on constraints
-        if isfinite(cl[i])
-            set_attribute(coni, "lb", cl[i])
-        end
-        if isfinite(cu[i])
-            set_attribute(coni, "ub", cu[i])
-        end
+        isfinite(cl[i]) && set_attribute(coni, "lb", cl[i])
+        isfinite(cu[i]) && set_attribute(coni, "ub", cu[i])
         # save for possible constraint bound modification?
         m.cons[i] = coni
     end

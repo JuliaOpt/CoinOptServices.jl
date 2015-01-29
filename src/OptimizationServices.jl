@@ -358,7 +358,15 @@ function write_osol_file(osol, x0, options)
         set_attribute(vari, "value", x0[idx])
     end
 
-    # TODO: solverOptions
+    if length(options) > 0
+        solverOptions = new_child(optimization, "solverOptions")
+        set_attribute(solverOptions, "numberOfSolverOptions", length(options))
+        for i = 1:length(options)
+            solverOption = new_child(solverOptions, "solverOption")
+            set_attribute(solverOption, "name", options[i][1])
+            set_attribute(solverOption, "value", options[i][2])
+        end
+    end
 
     ret = save_file(xdoc, osol)
     free(xdoc)

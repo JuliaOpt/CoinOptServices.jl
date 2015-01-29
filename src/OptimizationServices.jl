@@ -5,12 +5,12 @@ importall MathProgBase.SolverInterface
 
 debug = true # (ccall(:jl_is_debugbuild, Cint, ()) == 1)
 if debug
-    macro assertform(x, y)
-        msg = "$x expected to be $y, was "
-        :($x == $y ? nothing : error($msg * repr($x)))
+    macro assertequal(x, y)
+        msg = "Expected $x == $y, got "
+        :($x == $y ? nothing : error($msg, repr($x), " != ", repr($y)))
     end
 else
-    macro assertform(x, y)
+    macro assertequal(x, y)
     end
 end
 
@@ -78,9 +78,9 @@ MathProgBase.model(s::OsilSolver) =
 
 
 function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
-
-    @assert length(xl) == length(xu)
-    @assert length(cl) == length(cu)
+    # create osil data that is common between linear and nonlinear problems
+    @assertequal(length(xl), length(xu))
+    @assertequal(length(cl), length(cu))
     numberOfVariables = length(xl)
     numberOfConstraints = length(cl)
 
@@ -144,8 +144,9 @@ end
 
 function MathProgBase.loadproblem!(m::OsilMathProgModel,
         A, xl, xu, f, cl, cu, objsense)
-
-    @assert size(A) == (length(cl), length(xl))
+    # populate osil data that is specific to linear problems
+    @assertequal(size(A, 1), length(cl))
+    @assertequal(size(A, 2), length(xl))
 
     create_osil_common!(m, xl, xu, cl, cu, objsense)
 
@@ -194,7 +195,7 @@ end
 function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
         numberOfVariables, numberOfConstraints, xl, xu, cl, cu, objsense,
         d::MathProgBase.AbstractNLPEvaluator)
-
+    # populate osil data that is specific to nonlinear problems
     @assert numberOfVariables == length(xl)
     @assert numberOfConstraints == length(cl)
 
@@ -210,9 +211,9 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     objexpr = MathProgBase.obj_expr(d)
     nlobj = false
     if MathProgBase.isobjlinear(d)
-        @assertform objexpr.head :call
+        @assertequal(objexpr.head, :call)
         objexprargs = objexpr.args
-        @assertform objexprargs[1] :+
+        @assertequal(objexprargs[1], :+)
         constant = 0.0
         for i = 2:length(objexprargs)
             constant += addLinElem!(indicator, densevals, objexprargs[i])
@@ -252,12 +253,12 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     end
     while nextrowlinear
         constrexpr = MathProgBase.constr_expr(d, row)
-        @assertform constrexpr.head :comparison
+        @assertequal(constrexpr.head, :comparison)
         #(lhs, rhs) = constr2bounds(constrexpr.args...)
         constrlinpart = constrexpr.args[end - 2]
-        @assertform constrlinpart.head :call
+        @assertequal(constrlinpart.head, :call)
         constrlinargs = constrlinpart.args
-        @assertform constrlinargs[1] :+
+        @assertequal(constrlinargs[1], :+)
         for i = 2:length(constrlinargs)
             addLinElem!(indicator, densevals, constrlinargs[i]) == 0.0 ||
                 error("Unexpected constant term in linear constraint")
@@ -302,7 +303,7 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
             nl = new_child(nonlinearExpressions, "nl")
             set_attribute(nl, "idx", row - 1) # OSiL is 0-based
             constrexpr = MathProgBase.constr_expr(d, row)
-            @assertform constrexpr.head :comparison
+            @assertequal(constrexpr.head, :comparison)
             #(lhs, rhs) = constr2bounds(constrexpr.args...)
             expr2osnl!(nl, constrexpr.args[end - 2])
         end
@@ -314,7 +315,7 @@ end
 function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})
     m.vartypes = vartypes
     vars = m.vars
-    @assert length(vars) == length(vartypes)
+    @assertequal(length(vars), length(vartypes))
     for i = 1:length(vartypes)
         if haskey(jl2osil_vartypes, vartypes[i])
             set_attribute(vars[i], "type", jl2osil_vartypes[vartypes[i]])
@@ -330,7 +331,7 @@ function MathProgBase.setsense!(m::OsilMathProgModel, objsense::Symbol)
 end
 
 function MathProgBase.setwarmstart!(m::OsilMathProgModel, x0::Vector{Float64})
-    @assert length(x0) == m.numberOfVariables
+    @assertequal(length(x0), m.numberOfVariables)
     m.x0 = x0
 end
 
@@ -368,10 +369,10 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     xroot = root(xdoc)
     # do something with general/generalStatus ?
     optimization = find_element(xroot, "optimization")
-    @assert int(attribute(optimization, "numberOfVariables")) ==
-        m.numberOfVariables
-    @assert int(attribute(optimization, "numberOfConstraints")) ==
-        m.numberOfConstraints
+    @assertequal(int(attribute(optimization, "numberOfVariables")),
+        m.numberOfVariables)
+    @assertequal(int(attribute(optimization, "numberOfConstraints")),
+        m.numberOfConstraints)
     numberOfSolutions = attribute(optimization, "numberOfSolutions")
     if numberOfSolutions != "1"
         warn("numberOfSolutions expected to be 1, was $numberOfSolutions")
@@ -394,7 +395,8 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     end
     variables = find_element(solution, "variables")
     varvalues = find_element(variables, "values")
-    @assert attribute(varvalues, "numberOfVar") == string(m.numberOfVariables)
+    @assertequal(attribute(varvalues, "numberOfVar"),
+        string(m.numberOfVariables))
     m.solution = Array(Float64, m.numberOfVariables)
     for vari in child_elements(varvalues)
         idx = int(attribute(vari, "idx")) + 1 # OSiL is 0-based
@@ -414,6 +416,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
 end
 
 function MathProgBase.optimize!(m::OsilMathProgModel)
+    # TODO: warn about maximization problems (or find fix upstream)
     save_file(m.xdoc, m.osil)
     if isdefined(m, :x0)
         write_osol_file(m.osol, m.x0, m.options)

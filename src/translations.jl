@@ -77,15 +77,15 @@ osrl2jl_status = @compat Dict(
 function addLinElem!(indicator, densevals, elem::Expr)
     # convert Expr of the form :(val * x[idx]) to (idx, val)
     # then set indicator[idx] = true; densevals[idx] += val
-    @assertform elem.head :call
+    @assertequal(elem.head, :call)
     elemargs = elem.args
-    @assertform elemargs[1] :*
-    @assertform length(elemargs) 3
+    @assertequal(elemargs[1], :*)
+    @assertequal(length(elemargs), 3)
     elemarg3 = elemargs[3]
-    @assertform elemarg3.head :ref
+    @assertequal(elemarg3.head, :ref)
     elemarg3args = elemarg3.args
-    @assertform elemarg3args[1] :x
-    @assertform length(elemarg3args) 2
+    @assertequal(elemarg3args[1], :x)
+    @assertequal(length(elemarg3args), 2)
     idx::Int = elemarg3args[2]
     indicator[idx] = true
     densevals[idx] += elemargs[2]
@@ -170,8 +170,8 @@ end
 
 function var2osnl!(parent, args)
     # convert :(x[idx]) to osnl, adding <variable> xml element to parent
-    @assertform args[1] :x
-    @assertform length(args) 2
+    @assertequal(args[1], :x)
+    @assertequal(length(args), 2)
     idx::Int = args[2]
     child = new_child(parent, "variable")
     set_attribute(child, "idx", idx - 1) # OSiL is 0-based

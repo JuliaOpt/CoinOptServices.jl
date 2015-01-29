@@ -280,7 +280,27 @@ end
 
 function write_osol_file(osol, x0, options)
     xdoc = XMLDocument()
-    # fill in osol file here
+    xroot = create_root(xdoc, "osol")
+    set_attribute(xroot, "xmlns", "os.optimizationservices.org")
+    set_attribute(xroot, "xmlns:xsi",
+        "http://www.w3.org/2001/XMLSchema-instance")
+    set_attribute(xroot, "xsi:schemaLocation",
+        "os.optimizationservices.org " *
+        "http://www.optimizationservices.org/schemas/2.0/OSoL.xsd")
+
+    optimization = new_child(xroot, "optimization")
+    variables = new_child(optimization, "variables")
+    initialVariableValues = new_child(variables, "initialVariableValues")
+    set_attribute(initialVariableValues, "numberOfVar", m.numberOfVariables)
+
+    for idx = 1:m.numberOfVariables
+        vari = new_child(initialVariableValues, "var")
+        set_attribute(vari, "idx", idx - 1) # OSiL is 0-based
+        set_attribute(vari, "value", x0[idx])
+    end
+
+    # TODO: solverOptions
+
     save_file(xdoc, osol)
     free(xdoc)
 end

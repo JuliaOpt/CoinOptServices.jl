@@ -226,6 +226,10 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     end
     m.numLinConstr = row - 1
     if m.numLinConstr > 0
+        # fill in remaining row starts for nonlinear constraints
+        for row = m.numLinConstr + 1 : numberOfConstraints
+            add_text(new_child(rowstarts, "el"), string(numberOfValues))
+        end
         set_attribute(linearConstraintCoefficients, "numberOfValues",
             numberOfValues)
     end
@@ -291,9 +295,9 @@ function write_osol_file(osol, x0, options)
     optimization = new_child(xroot, "optimization")
     variables = new_child(optimization, "variables")
     initialVariableValues = new_child(variables, "initialVariableValues")
-    set_attribute(initialVariableValues, "numberOfVar", m.numberOfVariables)
+    set_attribute(initialVariableValues, "numberOfVar", length(x0))
 
-    for idx = 1:m.numberOfVariables
+    for idx = 1:length(x0)
         vari = new_child(initialVariableValues, "var")
         set_attribute(vari, "idx", idx - 1) # OSiL is 0-based
         set_attribute(vari, "value", x0[idx])
@@ -307,7 +311,7 @@ end
 
 function MathProgBase.optimize!(m::OsilMathProgModel)
     save_file(m.xdoc, m.osil)
-    write_osol_file(m.osol, m.x0, options)
+    write_osol_file(m.osol, m.x0, m.options)
     if isempty(m.solver)
         solvercmd = `` # use default
     else

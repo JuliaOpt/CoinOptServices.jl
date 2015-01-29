@@ -15,15 +15,9 @@ m = Model(solver = OsilSolver())
 #@addNLConstraint(m, 1 <= log(x1/x2))
 
 
-#A = JuMP.prepConstrMatrix(m)
-#d = JuMP.JuMPNLPEvaluator(m, A)
-d = JuMP.JuMPNLPEvaluator(m, JuMP.prepConstrMatrix(m))
-MathProgBase.initialize(d, [:ExprGraph]);
-MathProgBase.obj_expr(d)
-MathProgBase.constr_expr(d, 1)
-MathProgBase.constr_expr(d, 2)
-MathProgBase.constr_expr(d, 3)
-MathProgBase.constr_expr(d, 4)
+#d = JuMP.JuMPNLPEvaluator(m, JuMP.prepConstrMatrix(m))
+#MathProgBase.initialize(d, [:ExprGraph]);
+#MathProgBase.obj_expr(d)
+#MathProgBase.constr_expr(d, 1)
 
-
-
+solve(m)

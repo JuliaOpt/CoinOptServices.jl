@@ -147,17 +147,18 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
     # populate osil data that is specific to linear problems
     @assertequal(size(A, 1), length(cl))
     @assertequal(size(A, 2), length(xl))
+    @assertequal(size(A, 2), length(f))
 
     create_osil_common!(m, xl, xu, cl, cu, objsense)
 
     numberOfObjCoef = 0
-    idx = findnext(f, 1)
-    while idx != 0
+    for idx = 1:length(f)
+        val = f[idx]
+        (val == 0.0) && continue
         numberOfObjCoef += 1
         coef = new_child(m.obj, "coef")
         set_attribute(coef, "idx", idx - 1) # OSiL is 0-based
-        add_text(coef, string(f[idx]))
-        idx = findnext(f, idx + 1)
+        add_text(coef, string(val))
     end
     set_attribute(m.obj, "numberOfObjCoef", numberOfObjCoef)
 

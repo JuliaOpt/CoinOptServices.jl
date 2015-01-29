@@ -55,7 +55,24 @@ jl2osil_vartypes = @compat Dict(:Cont => "C", :Int => "I", :Bin => "B",
     :SemiCont => "D", :SemiInt => "J", :Fixed => "C")
 # assuming lb == ub for all occurrences of :Fixed vars
 
-
+osrl2jl_status = @compat Dict(
+    "unbounded" => :Unbounded,
+    "globallyOptimal" => :Optimal,
+    "locallyOptimal" => :Optimal,
+    "optimal" => :Optimal,
+    "bestSoFar" => :Error, # be conservative for now
+    "feasible" => :Error, # not sure when this happens - maybe with no objective?
+    "infeasible" => :Infeasible,
+    "unsure" => :Error,
+    "error" => :Error,
+    "other" => :Error, # OSBonminSolver and OSCouenneSolver use this for LIMIT_EXCEEDED
+    "stoppedByLimit" => :UserLimit,
+    "stoppedByBounds" => :Error, # does this ever happen?
+    "IpoptAccetable" => :Optimal, # this (with typo) only occurs in OSIpoptSolver
+    "BonminAccetable" => :Optimal, # this (with typo) only occurs in a
+    "BonminAcceptable" => :Optimal, # possibly-obsolete version of OSBonminSolver
+    "IpoptAcceptable" => :Optimal # the typos may get fixed at some point
+    )
 
 function addLinElem!(indicator, densevals, elem::Expr)
     # convert Expr of the form :(val * x[idx]) to (idx, val)

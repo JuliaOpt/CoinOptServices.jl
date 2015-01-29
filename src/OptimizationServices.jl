@@ -295,8 +295,59 @@ function write_osol_file(osol, x0, options)
 
     # TODO: solverOptions
 
-    save_file(xdoc, osol)
+    ret = save_file(xdoc, osol)
     free(xdoc)
+    return ret
+end
+
+function read_osrl_file!(m::OsilMathProgModel, osrl)
+    xdoc = parse_file(osrl) # TODO: figure out how to suppress namespace warning
+    xroot = root(xdoc)
+    # do something with general/generalStatus ?
+    optimization = find_element(xroot, "optimization")
+    @assert int(attribute(optimization, "numberOfVariables")) ==
+        m.numberOfVariables
+    @assert int(attribute(optimization, "numberOfConstraints")) ==
+        m.numberOfConstraints
+    numberOfSolutions = attribute(optimization, "numberOfSolutions")
+    if numberOfSolutions != "1"
+        warn("numberOfSolutions expected to be 1, was $numberOfSolutions")
+    end
+    solution = find_element(optimization, "solution")
+    status = find_element(solution, "status")
+    statustype = attribute(status, "type")
+    statusdescription = attribute(status, "description")
+    if haskey(osrl2jl_status, statustype)
+        m.status = osrl2jl_status[statustype]
+    else
+        error("Unknown solution status type $statustype")
+    end
+    if startswith(statusdescription, "LIMIT")
+        if m.status != :UserLimit
+            warn("osrl status was $statustype but description was:\n" *
+                "$statusdescription, so setting m.status = :UserLimit")
+            m.status = :UserLimit
+        end
+    end
+    variables = find_element(solution, "variables")
+    varvalues = find_element(variables, "values")
+    @assert attribute(varvalues, "numberOfVar") == string(m.numberOfVariables)
+    m.solution = Array(Float64, m.numberOfVariables)
+    for vari in child_elements(varvalues)
+        idx = int(attribute(vari, "idx")) + 1 # OSiL is 0-based
+        m.solution[idx] = float64(content(vari))
+    end
+    objectives = find_element(solution, "objectives")
+    objvalues = find_element(objectives, "values")
+    numberOfObj = attribute(objvalues, "numberOfObj")
+    if numberOfObj != "1"
+        warn("numberOfObj expected to be 1, was $numberOfObj")
+    end
+    m.objval = float64(content(find_element(objvalues, "obj")))
+    # TODO: more status details/messages, duals (under variables/other for
+    # ipopt var bound multipliers, bonmin and couenne do not return them)
+    free(xdoc)
+    return m.status
 end
 
 function MathProgBase.optimize!(m::OsilMathProgModel)
@@ -309,13 +360,7 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
     end
     run(`$OSSolverService -osil $(m.osil) -osol $(m.osol) -osrl $(m.osrl)
         $solvercmd`)
-
-    xdoc = parse_file(m.osrl)
-    # read from osrl file here
-    println(xdoc)
-    free(xdoc)
-
-    return m.status
+    return read_osrl_file!(m, m.osrl)
 end
 
 MathProgBase.status(m::OsilMathProgModel) = m.status

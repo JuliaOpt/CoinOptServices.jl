@@ -396,8 +396,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     end
     variables = find_element(solution, "variables")
     varvalues = find_element(variables, "values")
-    @assertequal(attribute(varvalues, "numberOfVar"),
-        string(m.numberOfVariables))
+    @assertequal(int(attribute(varvalues, "numberOfVar")), m.numberOfVariables)
     m.solution = Array(Float64, m.numberOfVariables)
     for vari in child_elements(varvalues)
         idx = int(attribute(vari, "idx")) + 1 # OSiL is 0-based
@@ -417,7 +416,10 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
 end
 
 function MathProgBase.optimize!(m::OsilMathProgModel)
-    # TODO: warn about maximization problems (or find fix upstream)
+    (m.objsense == :Max) && warn("Maximization problems are currently " *
+        "known to be buggy with OSSolverService and MINLP solvers, see " *
+        "https://projects.coin-or.org/OS/ticket/52. Formulate your " *
+        "problem as a minimization for more reliable results.")
     save_file(m.xdoc, m.osil)
     if isdefined(m, :x0)
         write_osol_file(m.osol, m.x0, m.options)

@@ -71,8 +71,7 @@ osrl2jl_status = @compat Dict(
     "IpoptAccetable" => :Optimal, # this (with typo) only occurs in OSIpoptSolver
     "BonminAccetable" => :Optimal, # this (with typo) only occurs in a
     "BonminAcceptable" => :Optimal, # possibly-obsolete version of OSBonminSolver
-    "IpoptAcceptable" => :Optimal # the typos may get fixed at some point
-    )
+    "IpoptAcceptable" => :Optimal) # the typos may get fixed at some point
 
 function addLinElem!(indicator, densevals, elem::Expr)
     # convert Expr of the form :(val * x[idx]) to (idx, val)

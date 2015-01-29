@@ -121,12 +121,9 @@ function expr2osnl!(parent, ex::Expr)
                 error("Do not know how to convert unary $(args[1]) to osnl")
             end
         elseif numargs == 3
-            # TODO: check for special cases:
-            # square, coef * variable
             if haskey(jl2osnl_binary, args[1])
-                child = new_child(parent, jl2osnl_binary[args[1]])
-                expr2osnl!(child, args[2])
-                expr2osnl!(child, args[3])
+                # handle some special cases, see below
+                child = binary2osnl!(parent, args...)
             else
                 error("Do not know how to convert binary $(args[1]) to osnl")
             end
@@ -141,11 +138,7 @@ function expr2osnl!(parent, ex::Expr)
             end
         end
     elseif head == :ref
-        @assertform args[1] :x
-        @assertform numargs 2
-        idx::Int = args[2]
-        child = new_child(parent, "variable")
-        set_attribute(child, "idx", idx - 1) # OSiL is 0-based
+        child = var2osnl!(parent, args)
     else
         error("Do not know how to handle expression $ex with head $head")
     end
@@ -156,6 +149,55 @@ function expr2osnl!(parent, ex)
     child = new_child(parent, "number")
     set_attribute(child, "value", ex)
     return child
+end
+
+function var2osnl!(parent, args)
+    # convert :(x[idx]) to osnl, adding <variable> xml element to parent
+    @assertform args[1] :x
+    @assertform length(args) 2
+    idx::Int = args[2]
+    child = new_child(parent, "variable")
+    set_attribute(child, "idx", idx - 1) # OSiL is 0-based
+    return child
+end
+
+function binary2osnl_generic!(parent, op::Symbol, ex1, ex2)
+    # convert generic binary operation from Expr(:call, op, ex1, ex1)
+    # to OSnL, adding any new child xml elements to parent
+    child = new_child(parent, jl2osnl_binary[op])
+    expr2osnl!(child, ex1)
+    expr2osnl!(child, ex2)
+    return child
+end
+function binary2osnl!(parent, op::Symbol, ex1::Expr, ex2::Number)
+    # special cases for square, variable * coef, variable / coef
+    if ex2 == 2 && (op == :^ || op == :.^)
+        child = new_child(parent, "square")
+        expr2osnl!(child, ex1)
+    # do same thing for sqrt here?
+    elseif ex1.head == :ref && (op == :* || op == :.*)
+        child = var2osnl!(parent, ex1.args)
+        set_attribute(child, "coef", ex2)
+    elseif ex1.head == :ref && (op == :/ || op == :./)
+        child = var2osnl!(parent, ex1.args)
+        set_attribute(child, "coef", 1 / ex2)
+    else
+        child = binary2osnl_generic!(parent, op, ex1, ex2)
+    end
+    return child
+end
+function binary2osnl!(parent, op::Symbol, ex1::Number, ex2::Expr)
+    # special case for coef * variable
+    if ex2.head == :ref && (op == :* || op == :.*)
+        child = var2osnl!(parent, ex2.args)
+        set_attribute(child, "coef", ex1)
+    else
+        child = binary2osnl_generic!(parent, op, ex1, ex2)
+    end
+    return child
+end
+function binary2osnl!(parent, op::Symbol, ex1, ex2)
+    return binary2osnl_generic!(parent, op, ex1, ex2)
 end
 
 

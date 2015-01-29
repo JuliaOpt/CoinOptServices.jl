@@ -39,6 +39,12 @@ OsilSolver(;
     options...) = OsilSolver(solver, osil, osol, osrl, options)
 
 type OsilMathProgModel <: AbstractMathProgModel
+    solver::String
+    osil::String
+    osol::String
+    osrl::String
+    options
+
     numberOfVariables::Int
     numberOfConstraints::Int
     xl::Vector{Float64}
@@ -46,6 +52,7 @@ type OsilMathProgModel <: AbstractMathProgModel
     cl::Vector{Float64}
     cu::Vector{Float64}
     objsense::Symbol
+    d::AbstractNLPEvaluator
 
     numLinConstr::Int
     vartypes::Vector{Symbol}
@@ -55,47 +62,13 @@ type OsilMathProgModel <: AbstractMathProgModel
     solution::Vector{Float64}
     status::Symbol
 
-    solver::String
-    osil::String
-    osol::String
-    osrl::String
-
-    options
-
+    xdoc::XMLDocument # TODO: finalizer
+    obj::XMLElement
     vars::Vector{XMLElement}
     cons::Vector{XMLElement}
 
-    xdoc::XMLDocument # TODO: finalizer
-    obj::XMLElement
-
-    d::AbstractNLPEvaluator
-
     function OsilMathProgModel(solver, osil, osol, osrl; options...)
-        new(0,
-            0,
-            Float64[],
-            Float64[],
-            Float64[],
-            Float64[],
-            symbol(""),
-
-            0,
-            Symbol[],
-            Float64[],
-
-            NaN,
-            Float64[],
-            symbol(""),
-
-            solver,
-            osil,
-            osol,
-            osrl,
-
-            options,
-
-            XMLElement[],
-            XMLElement[])
+        new(solver, osil, osol, osrl, options)
     end
 end
 
@@ -125,12 +98,9 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     if isdefined(m, :xdoc)
         free(m.xdoc)
     end
-    empty!(m.vars)
-    sizehint!(m.vars, numberOfVariables)
-    empty!(m.cons)
-    sizehint!(m.cons, numberOfConstraints)
-
     m.xdoc = XMLDocument()
+    m.vars = Array(XMLElement, numberOfVariables)
+    m.cons = Array(XMLElement, numberOfConstraints)
 
     xroot = create_root(m.xdoc, "osil")
     set_attribute(xroot, "xmlns", "os.optimizationservices.org")
@@ -155,7 +125,7 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
         if isfinite(xu[i])
             set_attribute(vari, "ub", xu[i])
         end
-        push!(m.vars, vari)
+        m.vars[i] = vari
     end
 
     objectives = new_child(instanceData, "objectives")
@@ -212,7 +182,7 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
             set_attribute(coni, "ub", cu[i])
         end
         # save for possible constraint bound modification?
-        push!(m.cons, coni)
+        m.cons[i] = coni
     end
 
     # assume linear constraints are all at start
@@ -290,7 +260,11 @@ function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol}
     vars = m.vars
     @assert length(vars) == length(vartypes)
     for i = 1:length(vartypes)
-        set_attribute(vars[i], "type", jl2osil_vartypes[vartypes[i]])
+        if haskey(jl2osil_vartypes, vartypes[i])
+            set_attribute(vars[i], "type", jl2osil_vartypes[vartypes[i]])
+        else
+            error("Unrecognized vartype $(vartypes[i])")
+        end
     end
 end
 

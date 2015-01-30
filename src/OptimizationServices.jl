@@ -137,7 +137,6 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
         # assume no constant attributes on constraints
         isfinite(cl[i]) && set_attribute(coni, "lb", cl[i])
         isfinite(cu[i]) && set_attribute(coni, "ub", cu[i])
-        # save for possible constraint bound modification?
         m.cons[i] = coni
     end
 
@@ -316,28 +315,6 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
     return m
 end
 
-function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})
-    m.vartypes = vartypes
-    vars = m.vars
-    @assertequal(length(vars), length(vartypes))
-    for i = 1:length(vartypes)
-        if haskey(jl2osil_vartypes, vartypes[i])
-            set_attribute(vars[i], "type", jl2osil_vartypes[vartypes[i]])
-        else
-            error("Unrecognized vartype $(vartypes[i])")
-        end
-    end
-end
-
-function MathProgBase.setsense!(m::OsilMathProgModel, objsense::Symbol)
-    m.objsense = sense
-    set_attribute(m.obj, "maxOrMin", lowercase(string(objsense)))
-end
-
-function MathProgBase.setwarmstart!(m::OsilMathProgModel, x0::Vector{Float64})
-    @assertequal(length(x0), m.numberOfVariables)
-    m.x0 = x0
-end
 
 function write_osol_file(osol, x0, options)
     xdoc = XMLDocument()
@@ -501,6 +478,7 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
     return read_osrl_file!(m, m.osrl)
 end
 
+# getters
 MathProgBase.status(m::OsilMathProgModel) = m.status
 MathProgBase.numvar(m::OsilMathProgModel) = m.numberOfVariables
 MathProgBase.numconstr(m::OsilMathProgModel) = m.numberOfConstraints
@@ -512,8 +490,58 @@ MathProgBase.getreducedcosts(m::OsilMathProgModel) = m.reducedcosts
 MathProgBase.getconstrduals(m::OsilMathProgModel) = m.constrduals
 MathProgBase.getsense(m::OsilMathProgModel) = m.objsense
 MathProgBase.getvartype(m::OsilMathProgModel) = m.vartypes
+MathProgBase.getvarLB(m::OsilMathProgModel) = m.xl
+MathProgBase.getvarUB(m::OsilMathProgModel) = m.xu
+MathProgBase.getconstrLB(m::OsilMathProgModel) = m.cl
+MathProgBase.getconstrUB(m::OsilMathProgModel) = m.cu
 
+# setters
+function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})
+    vars = m.vars
+    @assertequal(length(vars), length(vartypes))
+    for i = 1:length(vartypes)
+        if haskey(jl2osil_vartypes, vartypes[i])
+            set_attribute(vars[i], "type", jl2osil_vartypes[vartypes[i]])
+        else
+            error("Unrecognized vartype $(vartypes[i])")
+        end
+    end
+    m.vartypes = vartypes
+end
 
+function setbounds!(xvec::Vector{XMLElement}, b::Vector{Float64}, attr)
+    @assertequal(length(xvec), length(b))
+    for i = 1:length(b)
+        set_attribute(xvec[i], attr, b[i])
+    end
+    return b
+end
+
+function MathProgBase.setvarLB!(m::OsilMathProgModel, xl::Vector{Float64})
+    m.xl = setbounds!(m.vars, xl, "lb")
+end
+
+function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
+    m.xu = setbounds!(m.vars, xu, "ub")
+end
+
+function MathProgBase.setconstrLB!(m::OsilMathProgModel, cl::Vector{Float64})
+    m.cl = setbounds!(m.cons, cl, "lb")
+end
+
+function MathProgBase.setconstrUB!(m::OsilMathProgModel, cu::Vector{Float64})
+    m.cu = setbounds!(m.cons, cu, "ub")
+end
+
+function MathProgBase.setsense!(m::OsilMathProgModel, objsense::Symbol)
+    set_attribute(m.obj, "maxOrMin", lowercase(string(objsense)))
+    m.objsense = sense
+end
+
+function MathProgBase.setwarmstart!(m::OsilMathProgModel, x0::Vector{Float64})
+    @assertequal(length(x0), m.numberOfVariables)
+    m.x0 = x0
+end
 
 # writeproblem for nonlinear?
 

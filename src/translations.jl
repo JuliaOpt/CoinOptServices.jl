@@ -3,7 +3,7 @@
 
 jl2osnl_varargs = @compat Dict(
     :+     => "sum",
-    :*     => "prod")
+    :*     => "product")
 
 jl2osnl_binary = @compat Dict(
     :+     => "plus",

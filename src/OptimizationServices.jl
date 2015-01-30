@@ -402,21 +402,36 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
             m.status = :UserLimit
         end
     end
+
     variables = find_element(solution, "variables")
-    varvalues = find_element(variables, "values")
-    @assertequal(int(attribute(varvalues, "numberOfVar")), m.numberOfVariables)
-    m.solution = Array(Float64, m.numberOfVariables)
-    for vari in child_elements(varvalues)
-        idx = int(attribute(vari, "idx")) + 1 # OSiL is 0-based
-        m.solution[idx] = float64(content(vari))
+    if variables == nothing
+        m.solution = fill(NaN, m.numberOfVariables)
+        (m.status == :Optimal) && warn("status was $statustype but no " *
+            "variables were present in $osrl")
+    else
+        varvalues = find_element(variables, "values")
+        @assertequal(int(attribute(varvalues, "numberOfVar")), m.numberOfVariables)
+        m.solution = Array(Float64, m.numberOfVariables)
+        for vari in child_elements(varvalues)
+            idx = int(attribute(vari, "idx")) + 1 # OSiL is 0-based
+            m.solution[idx] = float64(content(vari))
+        end
     end
+
     objectives = find_element(solution, "objectives")
-    objvalues = find_element(objectives, "values")
-    numberOfObj = attribute(objvalues, "numberOfObj")
-    if numberOfObj != "1"
-        warn("numberOfObj expected to be 1, was $numberOfObj")
+    if objectives == nothing
+        m.objval = NaN
+        (m.status == :Optimal) && warn("status was $statustype but no " *
+            "objectives were present in $osrl")
+    else
+        objvalues = find_element(objectives, "values")
+        numberOfObj = attribute(objvalues, "numberOfObj")
+        if numberOfObj != "1"
+            warn("numberOfObj expected to be 1, was $numberOfObj")
+        end
+        m.objval = float64(content(find_element(objvalues, "obj")))
     end
-    m.objval = float64(content(find_element(objvalues, "obj")))
+
     # TODO: more status details/messages, duals (under variables/other for
     # ipopt var bound multipliers, bonmin and couenne do not return them)
     free(xdoc)

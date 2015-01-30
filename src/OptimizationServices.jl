@@ -143,7 +143,8 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     return m
 end
 
-function MathProgBase.setobj!(m::OsilMathProgModel, f)
+# cannot use this multiple times without removing existing children of m.obj
+function setobj!(m::OsilMathProgModel, f)
     numberOfObjCoef = 0
     for idx = 1:length(f)
         val = f[idx]
@@ -165,7 +166,7 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
 
     create_osil_common!(m, xl, xu, cl, cu, objsense)
 
-    MathProgBase.setobj!(m, f)
+    setobj!(m, f)
 
     if issparse(A)
         colptr = A.colptr

@@ -1,6 +1,6 @@
-# OptimizationServices.jl
+# CoinOptServices.jl
 
-[![Build Status](https://travis-ci.org/tkelman/OptimizationServices.jl.svg?branch=master)](https://travis-ci.org/tkelman/OptimizationServices.jl)
+[![Build Status](https://travis-ci.org/tkelman/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/tkelman/CoinOptServices.jl)
 
 This [Julia](https://github.com/JuliaLang/julia) package is an interface
 between [MathProgBase.jl](https://github.com/JuliaOpt/MathProgBase.jl) and
@@ -24,7 +24,7 @@ Note that [Clp](https://github.com/JuliaOpt/Clp.jl), [Cbc](https://github.com/Ju
 and [Ipopt](https://github.com/JuliaOpt/Ipopt.jl) already have Julia packages
 that interface directly with their respective in-memory C API's. Particularly
 for Clp.jl and Cbc.jl, the existing packages should be faster than the
-OptimizationServices.jl approach of going through an OSiL file on disk.
+CoinOptServices.jl approach of going through an OSiL file on disk.
 Ipopt.jl is probably faster as well, however using ``OSSolverService`` will
 perform automatic differentiation in C++ using [CppAD](https://projects.coin-or.org/CppAD),
 which may have different performance characteristics than the pure-Julia
@@ -42,15 +42,15 @@ various modeling languages.
 
 You can install the package by running:
 
-    julia> Pkg.add("OptimizationServices")
+    julia> Pkg.add("CoinOptServices")
 
-On Linux or OSX, this will compile the Optimization Services library and its
-dependencies if they are not found in ``DL_LOAD_PATH``. Note that
-Optimization Services is a large C++ library with many dependencies, and it
-is not currently packaged for any released Linux distributions. Submit a
-pull request to support using the library from a system package manager if
-this changes. It is recommended to set ``ENV["MAKEFLAGS"] = "-j4"`` before
-installing the package so compilation does not take as long.
+On Linux or OSX, this will compile the COIN OS library and its dependencies
+if they are not found in ``DL_LOAD_PATH``. Note that OS is a large C++
+library with many dependencies, and it is not currently packaged for any
+released Linux distributions. Submit a pull request to support using the
+library from a system package manager if this changes. It is recommended
+to set ``ENV["MAKEFLAGS"] = "-j4"`` before installing the package so
+compilation does not take as long.
 
 The current BinDeps setup assumes Ipopt.jl and Cbc.jl have already been
 successfully installed in order to reuse the binaries for those solvers.
@@ -59,8 +59,8 @@ in order to compile Ipopt. On OSX, install [Homebrew](http://brew.sh/)
 and run ``brew install gcc``. On Linux, use your system package manager
 to install ``gfortran``.
 
-This package builds the remaining COIN-OR libraries OptimizationServices,
-CppAD, Bonmin, Couenne, and a few other solvers (DyLP, Vol, SYMPHONY, Bcp)
+This package builds the remaining COIN-OR libraries OS, CppAD, Bonmin,
+Couenne, and a few other solvers (DyLP, Vol, SYMPHONY, Bcp)
 that do not yet have Julia bindings.
 
 If you are using the generic Linux binaries of Julia, note that there is an
@@ -81,9 +81,9 @@ the latest progress.
 
 ## Usage
 
-OptimizationServices is usable as a solver in JuMP as follows.
+CoinOptServices is usable as a solver in JuMP as follows.
 
-    julia> using JuMP, OptimizationServices
+    julia> using JuMP, CoinOptServices
     julia> m = Model(solver = OsilSolver())
 
 Then model and solve your optimization problem as usual. See
@@ -94,11 +94,11 @@ a particular sub-solver, ``OsilSolver(osil = "/path/to/file.osil")`` or
 similarly ``osol`` or ``osrl`` keyword arguments to request non-default
 paths for writing the OSiL instance file, OSoL options file, or OSrL
 results file. The default location for writing these files is under
-``Pkg.dir("OptimizationServices", ".osil")``. Any other keyword arguments
+``Pkg.dir("CoinOptServices", ".osil")``. Any other keyword arguments
 provided to the ``OsilSolver`` constructor are interpreted as solver options
 and saved in the OSoL options file.
 
-OptimizationServices should also work with any other MathProgBase-compliant
+CoinOptServices should also work with any other MathProgBase-compliant
 linear or nonlinear optimization modeling tools, though this has not been
 tested. There are features in OSiL for representing conic optimization
 problems, but these are not currently exposed or connected to the

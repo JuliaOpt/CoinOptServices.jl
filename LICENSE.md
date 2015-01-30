@@ -1,6 +1,5 @@
-The OptimizationServices.jl package is licensed under the Simplified
-"2-clause" BSD License, or the Eclipse Public License - v 1.0, at
-your option.
+The CoinOptServices.jl package is licensed under the Simplified "2-clause"
+BSD License, or the Eclipse Public License - v 1.0, at your option.
 
 Simplified "2-clause" BSD License:
 

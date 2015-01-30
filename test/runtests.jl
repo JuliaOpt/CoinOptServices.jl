@@ -1,4 +1,4 @@
-using OptimizationServices, JuMP
+using CoinOptServices, JuMP
 using Base.Test
 
 # JuMP version of bonminEx1_Nonlinear.osil

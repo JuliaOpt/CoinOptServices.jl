@@ -17,4 +17,4 @@ before_install:
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("OptimizationServices"); Pkg.test("OptimizationServices")'
+#  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("CoinOptServices"); Pkg.test("CoinOptServices")'

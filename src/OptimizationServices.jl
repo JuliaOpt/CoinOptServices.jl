@@ -500,7 +500,7 @@ MathProgBase.getvarUB(m::OsilMathProgModel) = m.xu
 MathProgBase.getconstrLB(m::OsilMathProgModel) = m.cl
 MathProgBase.getconstrUB(m::OsilMathProgModel) = m.cu
 MathProgBase.getobj(m::OsilMathProgModel) =
-    xml2vec(m.obj, m.numberOfVariables, 0)
+    xml2vec(m.obj, m.numberOfVariables, 0.0)
 
 # setters
 function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})

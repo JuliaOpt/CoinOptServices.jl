@@ -143,15 +143,7 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     return m
 end
 
-function MathProgBase.loadproblem!(m::OsilMathProgModel,
-        A, xl, xu, f, cl, cu, objsense)
-    # populate osil data that is specific to linear problems
-    @assertequal(size(A, 1), length(cl))
-    @assertequal(size(A, 2), length(xl))
-    @assertequal(size(A, 2), length(f))
-
-    create_osil_common!(m, xl, xu, cl, cu, objsense)
-
+function MathProgBase.setobj!(m::OsilMathProgModel, f)
     numberOfObjCoef = 0
     for idx = 1:length(f)
         val = f[idx]
@@ -162,6 +154,18 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
         add_text(coef, string(val))
     end
     set_attribute(m.obj, "numberOfObjCoef", numberOfObjCoef)
+end
+
+function MathProgBase.loadproblem!(m::OsilMathProgModel,
+        A, xl, xu, f, cl, cu, objsense)
+    # populate osil data that is specific to linear problems
+    @assertequal(size(A, 1), length(cl))
+    @assertequal(size(A, 2), length(xl))
+    @assertequal(size(A, 2), length(f))
+
+    create_osil_common!(m, xl, xu, cl, cu, objsense)
+
+    MathProgBase.setobj!(m, f)
 
     if issparse(A)
         colptr = A.colptr
@@ -354,9 +358,9 @@ function write_osol_file(osol, x0, options)
     return ret
 end
 
-function xml2vec(el::XMLElement, n::Int)
+function xml2vec(el::XMLElement, n::Int, defaultval=NaN)
     # convert osrl list of variables or constraints to dense vector
-    x = fill(NaN, n)
+    x = fill(defaultval, n)
     for child in child_elements(el)
         idx = int(attribute(child, "idx")) + 1 # OSiL is 0-based
         x[idx] = float64(content(child))
@@ -494,6 +498,8 @@ MathProgBase.getvarLB(m::OsilMathProgModel) = m.xl
 MathProgBase.getvarUB(m::OsilMathProgModel) = m.xu
 MathProgBase.getconstrLB(m::OsilMathProgModel) = m.cl
 MathProgBase.getconstrUB(m::OsilMathProgModel) = m.cu
+MathProgBase.getobj(m::OsilMathProgModel) =
+    xml2vec(m.obj, m.numberOfVariables, 0)
 
 # setters
 function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})

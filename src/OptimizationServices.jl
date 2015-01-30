@@ -395,7 +395,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     else
         error("Unknown solution status type $statustype")
     end
-    if startswith(statusdescription, "LIMIT")
+    if statusdescription != nothing && startswith(statusdescription, "LIMIT")
         if m.status != :UserLimit
             warn("osrl status was $statustype but description was:\n" *
                 "$statusdescription, so setting m.status = :UserLimit")

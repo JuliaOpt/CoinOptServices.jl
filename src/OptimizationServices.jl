@@ -541,7 +541,7 @@ end
 
 function MathProgBase.setsense!(m::OsilMathProgModel, objsense::Symbol)
     set_attribute(m.obj, "maxOrMin", lowercase(string(objsense)))
-    m.objsense = sense
+    m.objsense = objsense
 end
 
 function MathProgBase.setwarmstart!(m::OsilMathProgModel, x0::Vector{Float64})

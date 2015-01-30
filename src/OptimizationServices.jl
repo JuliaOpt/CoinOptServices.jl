@@ -60,6 +60,8 @@ type OsilMathProgModel <: AbstractMathProgModel
 
     objval::Float64
     solution::Vector{Float64}
+    reducedcosts::Vector{Float64}
+    constrduals::Vector{Float64}
     status::Symbol
 
     xdoc::XMLDocument # TODO: finalizer
@@ -292,7 +294,8 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
         (nlobj ? 1 : 0)
     if numberOfNonlinearExpressions > 0
         # has nonlinear objective or at least 1 nonlinear constraint
-        nonlinearExpressions = new_child(m.instanceData, "nonlinearExpressions")
+        nonlinearExpressions = new_child(m.instanceData,
+            "nonlinearExpressions")
         set_attribute(nonlinearExpressions, "numberOfNonlinearExpressions",
             numberOfNonlinearExpressions)
         if nlobj
@@ -358,6 +361,7 @@ function write_osol_file(osol, x0, options)
         set_attribute(vari, "value", x0[idx])
     end
 
+    # TODO: implement these differently
     if length(options) > 0
         solverOptions = new_child(optimization, "solverOptions")
         set_attribute(solverOptions, "numberOfSolverOptions", length(options))
@@ -371,6 +375,16 @@ function write_osol_file(osol, x0, options)
     ret = save_file(xdoc, osol)
     free(xdoc)
     return ret
+end
+
+function xml2vec(el::XMLElement, n::Int)
+    # convert osrl list of variables or constraints to dense vector
+    x = fill(NaN, n)
+    for child in child_elements(el)
+        idx = int(attribute(child, "idx")) + 1 # OSiL is 0-based
+        x[idx] = float64(content(child))
+    end
+    return x
 end
 
 function read_osrl_file!(m::OsilMathProgModel, osrl)
@@ -410,11 +424,26 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
             "variables were present in $osrl")
     else
         varvalues = find_element(variables, "values")
-        @assertequal(int(attribute(varvalues, "numberOfVar")), m.numberOfVariables)
-        m.solution = Array(Float64, m.numberOfVariables)
-        for vari in child_elements(varvalues)
-            idx = int(attribute(vari, "idx")) + 1 # OSiL is 0-based
-            m.solution[idx] = float64(content(vari))
+        @assertequal(int(attribute(varvalues, "numberOfVar")),
+            m.numberOfVariables)
+        m.solution = xml2vec(varvalues, m.numberOfVariables)
+
+        # reduced costs
+        numberOfOther = attribute(variables, "numberOfOtherVariableResults")
+        if numberOfOther != nothing
+            others = get_elements_by_tagname(variables, "other")
+            @assertequal(int(numberOfOther), length(others))
+            for i = 1:length(others)
+                otheri = others[i]
+                if attribute(otheri, "name") == "reduced_costs"
+                    @assertequal(int(attribute(otheri, "numberOfVar")),
+                        m.numberOfVariables)
+                    if isdefined(m, :reducedcosts)
+                        warn("Overwriting existing reduced costs")
+                    end
+                    m.reducedcosts = xml2vec(otheri, m.numberOfVariables)
+                end
+            end
         end
     end
 
@@ -432,17 +461,30 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         m.objval = float64(content(find_element(objvalues, "obj")))
     end
 
-    # TODO: more status details/messages, duals (under variables/other for
-    # ipopt var bound multipliers, bonmin and couenne do not return them)
+    # constraint duals
+    constraints = find_element(solution, "constraints")
+    if constraints == nothing
+        m.constrduals = fill(NaN, m.numberOfConstraints)
+    else
+        dualValues = find_element(constraints, "dualValues")
+        @assertequal(int(attribute(dualValues, "numberOfCon")),
+            m.numberOfConstraints)
+        m.constrduals = xml2vec(dualValues, m.numberOfConstraints)
+    end
+
+    # TODO: more status details/messages?
     free(xdoc)
     return m.status
 end
 
 function MathProgBase.optimize!(m::OsilMathProgModel)
-    (m.objsense == :Max) && warn("Maximization problems are currently " *
-        "known to be buggy with OSSolverService and MINLP solvers, see " *
-        "https://projects.coin-or.org/OS/ticket/52. Formulate your " *
-        "problem as a minimization for more reliable results.")
+    if m.objsense == :Max && isdefined(m, :d) && isdefined(m, :vartypes) &&
+            !all(x -> (x == :Cont || x == :Fixed), m.vartypes)
+        warn("Maximization problems can be buggy with " *
+            "OSSolverService and MINLP solvers, see " *
+            "https://projects.coin-or.org/OS/ticket/52. Formulate your " *
+            "problem as a minimization for more reliable results.")
+    end
     save_file(m.xdoc, m.osil)
     if isdefined(m, :x0)
         write_osol_file(m.osol, m.x0, m.options)
@@ -464,8 +506,10 @@ MathProgBase.numvar(m::OsilMathProgModel) = m.numberOfVariables
 MathProgBase.numconstr(m::OsilMathProgModel) = m.numberOfConstraints
 MathProgBase.numlinconstr(m::OsilMathProgModel) = m.numLinConstr
 MathProgBase.numquadconstr(m::OsilMathProgModel) = 0 # TODO: quadratic problems
-MathProgBase.getsolution(m::OsilMathProgModel) = m.solution
 MathProgBase.getobjval(m::OsilMathProgModel) = m.objval
+MathProgBase.getsolution(m::OsilMathProgModel) = m.solution
+MathProgBase.getreducedcosts(m::OsilMathProgModel) = m.reducedcosts
+MathProgBase.getconstrduals(m::OsilMathProgModel) = m.constrduals
 MathProgBase.getsense(m::OsilMathProgModel) = m.objsense
 MathProgBase.getvartype(m::OsilMathProgModel) = m.vartypes
 

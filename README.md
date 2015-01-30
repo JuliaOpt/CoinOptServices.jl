@@ -29,7 +29,7 @@ Ipopt.jl is probably faster as well, however using ``OSSolverService`` will
 perform automatic differentiation in C++ using [CppAD](https://projects.coin-or.org/CppAD),
 which may have different performance characteristics than the pure-Julia
 [ReverseDiffSparse.jl](https://github.com/mlubin/ReverseDiffSparse.jl) package
-used for nonlinear programming in JuMP.jl. TODO: benchmarking!
+used for nonlinear programming in JuMP. TODO: benchmarking!
 
 Writing of ``.osil`` files is implemented using the
 [LightXML.jl](https://github.com/JuliaLang/LightXML.jl) Julia bindings to

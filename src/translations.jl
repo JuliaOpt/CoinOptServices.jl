@@ -216,8 +216,23 @@ function binary2osnl!(parent, op::Symbol, ex1, ex2)
     return binary2osnl_generic!(parent, op, ex1, ex2)
 end
 
+function xml2vec(el::XMLElement, n::Int, defaultval=NaN)
+    # convert osrl/osil list of variable values, bound or constraint
+    # dual values, or objective coefficients to dense vector
+    x = fill(defaultval, n)
+    indicator = fill(false, n)
+    for child in child_elements(el)
+        idx = int(attribute(child, "idx")) + 1 # OSiL is 0-based
+        if indicator[idx] # combine duplicates
+            x[idx] += float64(content(child))
+        else
+            indicator[idx] = true
+            x[idx] = float64(content(child))
+        end
+    end
+    return x
+end
+
 
 # TODO: other direction for reading osil => jump model
-
-
 

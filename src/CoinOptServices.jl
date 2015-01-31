@@ -358,22 +358,6 @@ function write_osol_file(osol, x0, options)
     return ret
 end
 
-function xml2vec(el::XMLElement, n::Int, defaultval=NaN)
-    # convert osrl list of variables or constraints to dense vector
-    x = fill(defaultval, n)
-    indicator = fill(false, n)
-    for child in child_elements(el)
-        idx = int(attribute(child, "idx")) + 1 # OSiL is 0-based
-        if indicator[idx] # combine duplicates
-            x[idx] += float64(content(child))
-        else
-            indicator[idx] = true
-            x[idx] = float64(content(child))
-        end
-    end
-    return x
-end
-
 function read_osrl_file!(m::OsilMathProgModel, osrl)
     xdoc = parse_file(osrl) # TODO: figure out how to suppress namespace warning
     xroot = root(xdoc)
@@ -480,7 +464,16 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
     end
     save_file(m.xdoc, m.osil)
     if isdefined(m, :x0)
-        write_osol_file(m.osol, m.x0, m.options)
+        xl, x0, xu = m.xl, m.x0, m.xu
+        have_warned = false
+        for i = 1:m.numberOfVariables
+            if !have_warned && !(xl[i] <= x0[i] <= xu[i])
+                warn("Modifying initial conditions to satisfy bounds")
+                have_warned = true
+            end
+            x0[i] = clamp(x0[i], xl[i], xu[i])
+        end
+        write_osol_file(m.osol, x0, m.options)
     else
         write_osol_file(m.osol, Float64[], m.options)
     end

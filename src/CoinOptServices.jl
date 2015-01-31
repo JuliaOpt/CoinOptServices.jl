@@ -167,29 +167,29 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
 
     _setobj!(m, f)
 
+    # transpose linear constraint matrix so it is easier
+    # to add linear rows in addquadconstr!
     if issparse(A)
-        colptr = A.colptr
-        rowval = A.rowval
-        nzval = A.nzval
+        At = A'
     else
-        Asparse = sparse(A)
-        colptr = Asparse.colptr
-        rowval = Asparse.rowval
-        nzval = Asparse.nzval
+        At = sparse(A)'
     end
+    rowptr = At.colptr
+    colval = At.rowval
+    nzval = At.nzval
     if length(nzval) > 0
         linearConstraintCoefficients = new_child(m.instanceData,
             "linearConstraintCoefficients")
         set_attribute(linearConstraintCoefficients, "numberOfValues",
             length(nzval))
-        colstarts = new_child(linearConstraintCoefficients, "start")
-        rowIdx = new_child(linearConstraintCoefficients, "rowIdx")
+        rowstarts = new_child(linearConstraintCoefficients, "start")
+        colIdx = new_child(linearConstraintCoefficients, "colIdx")
         values = new_child(linearConstraintCoefficients, "value")
-        for i=1:length(colptr)
-            add_text(new_child(colstarts, "el"), string(colptr[i] - 1)) # OSiL is 0-based
+        for i=1:length(rowptr)
+            add_text(new_child(rowstarts, "el"), string(rowptr[i] - 1)) # OSiL is 0-based
         end
-        for i=1:length(rowval)
-            add_text(new_child(rowIdx, "el"), string(rowval[i] - 1)) # OSiL is 0-based
+        for i=1:length(colval)
+            add_text(new_child(colIdx, "el"), string(colval[i] - 1)) # OSiL is 0-based
             add_text(new_child(values, "el"), string(nzval[i]))
         end
     end

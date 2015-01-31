@@ -3,7 +3,7 @@ using BinDeps
 @BinDeps.setup
 
 libOS = library_dependency("libOS", aliases=["libOS-6"])
-version = "2.9.0"
+version = "2.8.5"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz"),
     [libOS], os = :Unix)
@@ -32,7 +32,7 @@ end
 
 prefix = joinpath(BinDeps.depsdir(libOS), "usr")
 patchdir = BinDeps.depsdir(libOS)
-srcdir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version")
+builddir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version", "build")
 
 ENV2 = copy(ENV)
 @unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbclibdir, "pkgconfig") *
@@ -42,9 +42,10 @@ cbcincdir = joinpath(cbclibdir, "..", "include", "coin")
 provides(SimpleBuild,
     (@build_steps begin
         GetSources(libOS)
+        CreateDirectory(builddir, true)
         @build_steps begin
-            ChangeDirectory(srcdir)
-            setenv(`./configure --prefix=$prefix --enable-dependency-linking
+            ChangeDirectory(builddir)
+            setenv(`../configure --prefix=$prefix --enable-dependency-linking
                 coin_skip_warn_cflags=yes coin_skip_warn_cxxflags=yes coin_skip_warn_fflags=yes
                 --with-coinutils-lib="-L$cbclibdir -lCoinUtils"
                 --with-coinutils-incdir=$cbcincdir

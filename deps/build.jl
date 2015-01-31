@@ -14,14 +14,14 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
     WinRPM.update()
     provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
     cbclibdir = joinpath(WinRPM.installdir, "usr", Sys.MACHINE, "sys-root", "mingw", "bin")
-    ipoptlibdir = cbcdir
+    ipoptlibdir = cbclibdir
 end
 
 @osx_only begin
     using Homebrew
     provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
     cbclibdir = joinpath(Homebrew.prefix(), "lib")
-    ipoptlibdir = cbcdir
+    ipoptlibdir = cbclibdir
 end
 
 @linux_only begin

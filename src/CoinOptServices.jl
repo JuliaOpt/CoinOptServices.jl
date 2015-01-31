@@ -181,7 +181,7 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
         linearConstraintCoefficients = new_child(m.instanceData,
             "linearConstraintCoefficients")
         set_attribute(linearConstraintCoefficients, "numberOfValues",
-                length(nzval))
+            length(nzval))
         colstarts = new_child(linearConstraintCoefficients, "start")
         rowIdx = new_child(linearConstraintCoefficients, "rowIdx")
         values = new_child(linearConstraintCoefficients, "value")
@@ -416,23 +416,27 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         m.solution = xml2vec(varvalues, m.numberOfVariables)
 
         # reduced costs
-        numberOfOther = attribute(variables, "numberOfOtherVariableResults")
-        if numberOfOther != nothing
-            others = get_elements_by_tagname(variables, "other")
-            @assertequal(int(numberOfOther), length(others))
-            reduced_costs_found = false
-            for i = 1:length(others)
-                otheri = others[i]
-                if attribute(otheri, "name") == "reduced_costs"
-                    @assertequal(int(attribute(otheri, "numberOfVar")),
+        counter = 0
+        reduced_costs_found = false
+        for child in child_elements(variables)
+            if name(child) == "other"
+                counter += 1
+                if attribute(child, "name") == "reduced_costs"
+                    @assertequal(int(attribute(child, "numberOfVar")),
                         m.numberOfVariables)
                     if reduced_costs_found
                         warn("Overwriting existing reduced costs")
                     end
                     reduced_costs_found = true
-                    m.reducedcosts = xml2vec(otheri, m.numberOfVariables)
+                    m.reducedcosts = xml2vec(child, m.numberOfVariables)
                 end
             end
+        end
+        numberOfOther = attribute(variables, "numberOfOtherVariableResults")
+        if numberOfOther == nothing
+            @assertequal(counter, 0)
+        else
+            @assertequal(counter, int(numberOfOther))
         end
     end
 

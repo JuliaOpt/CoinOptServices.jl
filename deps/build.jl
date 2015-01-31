@@ -63,7 +63,7 @@ provides(SimpleBuild,
                 --with-ipopt-lib="-L$ipoptlibdir -lipopt"`, ENV2)
             `make`
             `make -j1 install`
-            `make test`
+            `make -C OS/test alltests`
         end
     end), [libOS], os = :Unix)
 

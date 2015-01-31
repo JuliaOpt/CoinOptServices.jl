@@ -143,7 +143,7 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
 end
 
 # cannot use this multiple times without removing existing children of m.obj
-function setobj!(m::OsilMathProgModel, f)
+function _setobj!(m::OsilMathProgModel, f)
     numberOfObjCoef = 0
     for idx = 1:length(f)
         val = f[idx]
@@ -165,7 +165,7 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
 
     create_osil_common!(m, xl, xu, cl, cu, objsense)
 
-    setobj!(m, f)
+    _setobj!(m, f)
 
     if issparse(A)
         colptr = A.colptr
@@ -361,9 +361,15 @@ end
 function xml2vec(el::XMLElement, n::Int, defaultval=NaN)
     # convert osrl list of variables or constraints to dense vector
     x = fill(defaultval, n)
+    indicator = fill(false, n)
     for child in child_elements(el)
         idx = int(attribute(child, "idx")) + 1 # OSiL is 0-based
-        x[idx] = float64(content(child))
+        if indicator[idx] # combine duplicates
+            x[idx] += float64(content(child))
+        else
+            indicator[idx] = true
+            x[idx] = float64(content(child))
+        end
     end
     return x
 end
@@ -414,14 +420,16 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         if numberOfOther != nothing
             others = get_elements_by_tagname(variables, "other")
             @assertequal(int(numberOfOther), length(others))
+            reduced_costs_found = false
             for i = 1:length(others)
                 otheri = others[i]
                 if attribute(otheri, "name") == "reduced_costs"
                     @assertequal(int(attribute(otheri, "numberOfVar")),
                         m.numberOfVariables)
-                    if isdefined(m, :reducedcosts)
+                    if reduced_costs_found
                         warn("Overwriting existing reduced costs")
                     end
+                    reduced_costs_found = true
                     m.reducedcosts = xml2vec(otheri, m.numberOfVariables)
                 end
             end

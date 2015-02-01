@@ -1,0 +1,31 @@
+diff --git a/OS/src/OSParsers/OSParseosil.tab.cpp b/OS/src/OSParsers/OSParseosil.tab.cpp
+index 517ef7f..f66e8a8 100644
+--- a/OS/src/OSParsers/OSParseosil.tab.cpp
++++ b/OS/src/OSParsers/OSParseosil.tab.cpp
+@@ -3906,7 +3906,6 @@ bool parseVariables( const char **p,  OSInstance *osinstance, int* osillineno){
+ 					vt = returnVarType(attText[0]);
+ 					if( vt == 0 ) {  osilerror_wrapper( ch,osillineno,"variable type not recognized"); return false;}
+ 					osinstance->instanceData->variables->var[varcount]->type = attText[0];
+-					if (vt == ENUM_VARTYPE_BINARY) osinstance->instanceData->variables->var[varcount]->ub = 1.0;
+ 					delete [] attText;
+ 					break;
+ 				case 'l':
+@@ -3955,6 +3954,18 @@ bool parseVariables( const char **p,  OSInstance *osinstance, int* osillineno){
+ 					return false;
+ 					break;
+ 				}
++				// verify bounds for binary variables
++				if (vt == ENUM_VARTYPE_BINARY)
++				{
++					if (osinstance->instanceData->variables->var[varcount]->ub == OSDBL_MAX)
++						osinstance->instanceData->variables->var[varcount]->ub = 1.0;
++					if (osinstance->instanceData->variables->var[varcount]->ub > 1.0 ||
++						osinstance->instanceData->variables->var[varcount]->ub < 0.0)
++						osilerror_wrapper( ch,osillineno,"invalid upper bound on binary variable");
++					if (osinstance->instanceData->variables->var[varcount]->lb > 1.0 ||
++						osinstance->instanceData->variables->var[varcount]->lb < 0.0)
++						osilerror_wrapper( ch,osillineno,"invalid lower bound on binary variable");
++				}
+ 				ch++;
+ 			}
+ 			//

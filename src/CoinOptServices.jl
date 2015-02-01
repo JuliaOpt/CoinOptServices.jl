@@ -28,20 +28,29 @@ immutable OsilSolver <: AbstractMathProgSolver
     osil::String
     osol::String
     osrl::String
+    printLevel::Int
     options
 end
+# note that changing DEFAULT_OUTPUT_LEVEL in OS/src/OSUtils/OSOutput.h
+# from ENUM_OUTPUT_LEVEL_error (1) to -1 is required to make printLevel=0
+# actually silent, since there are several instances of OSPrint that use
+# ENUM_OUTPUT_LEVEL_always (0) *before* command-line flags like -printLevel
+# have been read, and OSPrint shows output whenever the output level for a
+# call is <= the printLevel
 OsilSolver(;
     solver = "",
     osil = joinpath(osildir, "problem.osil"),
     osol = joinpath(osildir, "options.osol"),
     osrl = joinpath(osildir, "results.osrl"),
-    options...) = OsilSolver(solver, osil, osol, osrl, options)
+    printLevel = 1,
+    options...) = OsilSolver(solver, osil, osol, osrl, printLevel, options)
 
 type OsilMathProgModel <: AbstractMathProgModel
     solver::String
     osil::String
     osol::String
     osrl::String
+    printLevel::Int
     options
 
     numberOfVariables::Int
@@ -69,13 +78,12 @@ type OsilMathProgModel <: AbstractMathProgModel
     vars::Vector{XMLElement}
     cons::Vector{XMLElement}
 
-    function OsilMathProgModel(solver, osil, osol, osrl; options...)
-        new(solver, osil, osol, osrl, options)
-    end
+    OsilMathProgModel(solver, osil, osol, osrl, printLevel; options...) =
+        new(solver, osil, osol, osrl, printLevel, options)
 end
 
-MathProgBase.model(s::OsilSolver) =
-    OsilMathProgModel(s.solver, s.osil, s.osol, s.osrl; s.options...)
+MathProgBase.model(s::OsilSolver) = OsilMathProgModel(s.solver,
+    s.osil, s.osol, s.osrl, s.printLevel; s.options...)
 
 
 function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
@@ -492,7 +500,7 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
         solvercmd = `-solver $(m.solver)`
     end
     run(`$OSSolverService -osil $(m.osil) -osol $(m.osol) -osrl $(m.osrl)
-        $solvercmd`)
+        $solvercmd -printLevel $(m.printLevel)`)
     if filesize(m.osrl) == 0
         warn(m.osrl, " is empty")
         m.status = :Error

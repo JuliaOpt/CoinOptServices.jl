@@ -150,8 +150,12 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     return m
 end
 
-# cannot use this multiple times without removing existing children of m.obj
-function _setobj!(m::OsilMathProgModel, f)
+function MathProgBase.setobj!(m::OsilMathProgModel, f)
+    # unlink and free any existing children of m.obj
+    for el in child_elements(m.obj)
+        unlink(el)
+        free(el)
+    end
     numberOfObjCoef = 0
     for idx = 1:length(f)
         val = f[idx]
@@ -173,7 +177,7 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
 
     create_osil_common!(m, xl, xu, cl, cu, objsense)
 
-    _setobj!(m, f)
+    MathProgBase.setobj!(m, f)
 
     # transpose linear constraint matrix so it is easier
     # to add linear rows in addquadconstr!
@@ -538,14 +542,14 @@ function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol}
             set_attribute(vars[i], "type", jl2osil_vartypes[vartypes[i]])
             if vartypes[i] == :Bin
                 if m.xl[i] < 0.0
-                    warn("Setting lower bound for binary variable $i to ",
-                        "0.0 (was $(m.xl[i]))")
+                    warn("Setting lower bound for binary variable x[$i] ",
+                        "to 0.0 (was $(m.xl[i]))")
                     m.xl[i] = 0.0
                     set_attribute(vars[i], "lb", 0.0)
                 end
                 if m.xu[i] > 1.0
-                    warn("Setting upper bound for binary variable $i to ",
-                        "1.0 (was $(m.xu[i]))")
+                    warn("Setting upper bound for binary variable x[$i] ",
+                        "to 1.0 (was $(m.xu[i]))")
                     m.xu[i] = 1.0
                     set_attribute(vars[i], "ub", 1.0)
                 end
@@ -563,7 +567,7 @@ function MathProgBase.setvarLB!(m::OsilMathProgModel, xl::Vector{Float64})
     for i = 1:length(xl)
         xi = xvec[i]
         if xl[i] < 0.0 && attribute(xi, "type") == "B"
-            warn("Setting lower bound for binary variable $i to 0.0 ",
+            warn("Setting lower bound for binary variable x[$i] to 0.0 ",
                 "(was $(xl[i]))")
             xl[i] = 0.0
         end
@@ -578,7 +582,7 @@ function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
     for i = 1:length(xu)
         xi = xvec[i]
         if xu[i] > 1.0 && attribute(xi, "type") == "B"
-            warn("Setting upper bound for binary variable $i to 1.0 ",
+            warn("Setting upper bound for binary variable x[$i] to 1.0 ",
                 "(was $(xu[i]))")
             xu[i] = 1.0
         end

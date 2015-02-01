@@ -575,7 +575,7 @@ end
 function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
     xvec = m.vars
     @assertequal(length(xvec), length(xu))
-    for i = 1:length(xl)
+    for i = 1:length(xu)
         xi = xvec[i]
         if xu[i] > 1.0 && attribute(xi, "type") == "B"
             warn("Setting upper bound for binary variable $i to 1.0 ",

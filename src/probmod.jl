@@ -116,6 +116,42 @@ function MathProgBase.addvar!(m::OsilMathProgModel, lb, ub, objcoef)
     end
     m.numberOfVariables += 1
     set_attribute(m.variables, "numberOfVariables", m.numberOfVariables)
-    return m # or the new xml element, or nothing ?
+    return m # or the new <var> xml element, or nothing ?
 end
+
+function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
+    @assertequal(length(varidx), length(coef))
+    if m.numLinConstr < m.numberOfConstraints
+        error("Adding a constraint to a nonlinear model not implemented")
+    end
+    newcon!(m.constraints, lb, ub)
+
+    if m.numLinConstr == 0
+        (linConstrCoefs, rowstarts, colIdx, values) =
+            create_empty_linconstr!(m)
+        numberOfValues = 0
+    else
+        # could save linConstrCoefs and the sparse matrix
+        # data as part of m, but choosing not to optimize this much
+        linConstrCoefs = find_element(m.instanceData,
+            "linearConstraintCoefficients")
+        rowstarts = find_element(linConstrCoefs, "start")
+        colIdx = find_element(linConstrCoefs, "colIdx")
+        values = find_element(linConstrCoefs, "value")
+        numberOfValues = int(attribute(linConstrCoefs, "numberOfValues"))
+    end
+    numberOfValues += length(varidx)
+    set_attribute(linConstrCoefs, "numberOfValues", numberOfValues)
+    add_text(new_child(rowstarts, "el"), string(numberOfValues))
+    for i = 1:length(varidx)
+        add_text(new_child(colIdx, "el"), string(varidx[i] - 1)) # OSiL is 0-based
+        add_text(new_child(values, "el"), string(coef[i]))
+    end
+
+    m.numberOfConstraints += 1
+    m.numLinConstr += 1
+    set_attribute(m.constraints, "numberOfConstraints", m.numberOfConstraints)
+    return m # or the new <con> xml element, or nothing ?
+end
+
 

@@ -390,7 +390,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
             m.status = :Infeasible
         elseif statustype == "error" && (statusdescription ==
                 "The problem is unbounded" ||
-                startswith(statusdescription, "CONTINUOUS_UNBOUNDED")
+                startswith(statusdescription, "CONTINUOUS_UNBOUNDED"))
             m.status = :Unbounded
         end
     end

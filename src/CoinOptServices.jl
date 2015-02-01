@@ -371,7 +371,7 @@ function write_osol_file(osol, x0, options)
 end
 
 function read_osrl_file!(m::OsilMathProgModel, osrl)
-    xdoc = parse_file(osrl) # TODO: figure out how to suppress namespace warning
+    xdoc = parse_file(osrl, C_NULL, 64) # 64 == XML_PARSE_NOWARNING
     xroot = root(xdoc)
     # do something with general/generalStatus ?
     optimization = find_element(xroot, "optimization")

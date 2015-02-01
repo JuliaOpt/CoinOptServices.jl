@@ -216,7 +216,7 @@ function binary2osnl!(parent, op::Symbol, ex1, ex2)
     return binary2osnl_generic!(parent, op, ex1, ex2)
 end
 
-function xml2vec(el::XMLElement, n::Int, defaultval=NaN)
+function xml2vec(el::XMLElement, n::Integer, defaultval=NaN)
     # convert osrl/osil list of variable values, bound or constraint
     # dual values, or objective coefficients to dense vector
     x = fill(defaultval, n)
@@ -233,6 +233,13 @@ function xml2vec(el::XMLElement, n::Int, defaultval=NaN)
     return x
 end
 
+# TODO: move this to LightXML
+function parse_file(filename::String, encoding, options::Integer)
+    p = ccall(dlsym(LightXML.libxml2, "xmlReadFile"), Ptr{Void},
+        (Ptr{Cchar}, Ptr{Cchar}, Cint), filename, encoding, options)
+    p != C_NULL || throw(LightXML.XMLParseError("Failure in parsing an XML file."))
+    XMLDocument(p)
+end
 
 # TODO: other direction for reading osil => jump model
 

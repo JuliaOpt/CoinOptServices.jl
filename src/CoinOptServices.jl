@@ -63,6 +63,7 @@ type OsilMathProgModel <: AbstractMathProgModel
     d::AbstractNLPEvaluator
 
     numLinConstr::Int
+    numQuadConstr::Int
     vartypes::Vector{Symbol}
     x0::Vector{Float64}
 
@@ -87,6 +88,7 @@ end
 MathProgBase.model(s::OsilSolver) = OsilMathProgModel(s.solver,
     s.osil, s.osol, s.osrl, s.printLevel; s.options...)
 
+include("probmod.jl")
 
 function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     # create osil data that is common between linear and nonlinear problems
@@ -137,31 +139,9 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     for i = 1:numberOfConstraints
         newcon!(m.constraints, cl[i], cu[i])
     end
+    m.numQuadConstr = 0 # move this once MathProgBase.loadquadproblem! exists
 
     return m
-end
-
-function newvar!(variables::XMLElement, lb, ub)
-    # create a new child <var> with given lb, ub
-    var = new_child(variables, "var")
-    set_attribute(var, "lb", lb) # lb defaults to 0 if not specified!
-    isfinite(ub) && set_attribute(var, "ub", ub)
-    return var
-end
-
-function newcon!(constraints::XMLElement, lb, ub)
-    # create a new child <con> with given lb, ub
-    con = new_child(constraints, "con")
-    isfinite(lb) && set_attribute(con, "lb", lb)
-    isfinite(ub) && set_attribute(con, "ub", ub)
-    return con
-end
-
-function newobjcoef!(obj::XMLElement, idx, val)
-    coef = new_child(obj, "coef")
-    set_attribute(coef, "idx", idx)
-    add_text(coef, string(val))
-    return coef
 end
 
 function MathProgBase.setobj!(m::OsilMathProgModel, f)
@@ -338,7 +318,6 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
 
     return m
 end
-
 
 function write_osol_file(osol, x0, options)
     xdoc = XMLDocument()
@@ -521,11 +500,5 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
     end
     return m.status
 end
-
-include("probmod.jl")
-
-# writeproblem for nonlinear?
-
-
 
 end # module

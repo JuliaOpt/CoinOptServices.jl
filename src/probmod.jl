@@ -3,7 +3,7 @@ MathProgBase.status(m::OsilMathProgModel) = m.status
 MathProgBase.numvar(m::OsilMathProgModel) = m.numberOfVariables
 MathProgBase.numconstr(m::OsilMathProgModel) = m.numberOfConstraints
 MathProgBase.numlinconstr(m::OsilMathProgModel) = m.numLinConstr
-MathProgBase.numquadconstr(m::OsilMathProgModel) = 0 # TODO: quadratic problems
+MathProgBase.numquadconstr(m::OsilMathProgModel) = m.numQuadConstr
 MathProgBase.getobjval(m::OsilMathProgModel) = m.objval
 MathProgBase.getsolution(m::OsilMathProgModel) = m.solution
 MathProgBase.getreducedcosts(m::OsilMathProgModel) = m.reducedcosts
@@ -16,6 +16,62 @@ MathProgBase.getconstrLB(m::OsilMathProgModel) = m.cl
 MathProgBase.getconstrUB(m::OsilMathProgModel) = m.cu
 MathProgBase.getobj(m::OsilMathProgModel) =
     xml2vec(m.obj, m.numberOfVariables, 0.0)
+
+# helper functions
+function newvar!(variables::XMLElement, lb, ub)
+    # create a new child <var> with given lb, ub
+    var = new_child(variables, "var")
+    set_attribute(var, "lb", lb) # lb defaults to 0 if not specified!
+    isfinite(ub) && set_attribute(var, "ub", ub)
+    return var
+end
+
+function newcon!(constraints::XMLElement, lb, ub)
+    # create a new child <con> with given lb, ub
+    con = new_child(constraints, "con")
+    isfinite(lb) && set_attribute(con, "lb", lb)
+    isfinite(ub) && set_attribute(con, "ub", ub)
+    return con
+end
+
+function newobjcoef!(obj::XMLElement, idx, val)
+    coef = new_child(obj, "coef")
+    set_attribute(coef, "idx", idx)
+    add_text(coef, string(val))
+    return coef
+end
+
+function setattr!(parent::XMLElement, attr, v::Vector{Float64})
+    i = 0
+    for child in child_elements(parent)
+        i += 1
+        set_attribute(child, attr, v[i])
+    end
+    @assertequal(i, length(v))
+    return v
+end
+
+function initialize_quadcoefs!(m::OsilMathProgModel)
+    # return numberOfQuadraticTerms if quadraticCoefficients has been
+    # created, otherwise create quadraticCoefficients and return 0
+    if isdefined(m, :quadraticCoefficients)
+        return int(attribute(m.quadraticCoefficients,
+            "numberOfQuadraticTerms"))
+    else
+        m.quadraticCoefficients = new_child(m.instanceData,
+            "quadraticCoefficients")
+        return 0
+    end
+end
+
+function newquadterm!(parent::XMLElement, conidx, rowidx, colidx, val)
+    term = new_child(parent, "qTerm")
+    set_attribute(term, "idx", conidx) # -1 for objective terms
+    set_attribute(term, "idxOne", rowidx - 1) # OSiL is 0-based
+    set_attribute(term, "idxTwo", colidx - 1) # OSiL is 0-based
+    set_attribute(term, "coef", val)
+    return term
+end
 
 # setters
 function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})
@@ -76,16 +132,6 @@ function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
     m.xu = xu
 end
 
-function setattr!(parent::XMLElement, attr, v::Vector{Float64})
-    i = 0
-    for child in child_elements(parent)
-        i += 1
-        set_attribute(child, attr, v[i])
-    end
-    @assertequal(i, length(v))
-    return v
-end
-
 function MathProgBase.setconstrLB!(m::OsilMathProgModel, cl::Vector{Float64})
     m.cl = setattr!(m.constraints, "lb", cl)
 end
@@ -121,12 +167,13 @@ end
 
 function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     @assertequal(length(varidx), length(coef))
-    if m.numLinConstr < m.numberOfConstraints
+    if m.numLinConstr + m.numQuadConstr < m.numberOfConstraints
         error("Adding a constraint to a nonlinear model not implemented")
+        # addnlconstr! could be done though, if it existed in MathProgBase
     end
     newcon!(m.constraints, lb, ub)
 
-    if m.numLinConstr == 0
+    if m.numLinConstr + m.numQuadConstr == 0
         (linConstrCoefs, rowstarts, colIdx, values) =
             create_empty_linconstr!(m)
         numberOfValues = 0
@@ -154,27 +201,11 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     return m # or the new <con> xml element, or nothing ?
 end
 
-function newquadterm!(parent::XMLElement, conidx, rowidx, colidx, val)
-    term = new_child(parent, "qTerm")
-    set_attribute(term, "idx", conidx) # -1 for objective terms
-    set_attribute(term, "idxOne", rowidx - 1) # OSiL is 0-based
-    set_attribute(term, "idxTwo", colidx - 1) # OSiL is 0-based
-    set_attribute(term, "coef", val)
-    return term
-end
-
 function MathProgBase.setquadobjterms!(m::OsilMathProgModel,
         rowidx, colidx, quadval)
     @assertequal(length(rowidx), length(colidx))
     @assertequal(length(rowidx), length(quadval))
-    if isdefined(m, :quadraticCoefficients)
-        numQuadTerms = int(attribute(m.quadraticCoefficients,
-            "numberOfQuadraticTerms"))
-    else
-        m.quadraticCoefficients = new_child(m.instanceData,
-            "quadraticCoefficients")
-        numQuadTerms = 0
-    end
+    numQuadTerms = initialize_quadcoefs!(m)
     if isdefined(m, :quadobjterms)
         numQuadTerms -= length(m.quadobjterms)
         # unlink and free any existing quadratic objective terms
@@ -193,4 +224,37 @@ function MathProgBase.setquadobjterms!(m::OsilMathProgModel,
         numQuadTerms + length(quadval))
     return m # or the new quadobjterms, or nothing ?
 end
+
+function MathProgBase.addquadconstr!(m::OsilMathProgModel, linearidx,
+        linearval, quadrowidx, quadcolidx, quadval, sense, rhs)
+    @assertequal(length(quadrowidx), length(quadcolidx))
+    @assertequal(length(quadrowidx), length(quadval))
+    numQuadTerms = initialize_quadcoefs!(m)
+    # use old numberOfConstraints since OSiL is 0-based
+    conidx = m.numberOfConstraints
+    for i = 1:length(quadval)
+        newquadterm!(m.quadraticCoefficients, conidx,
+            quadrowidx[i], quadcolidx[i], quadval[i])
+    end
+    set_attribute(m.quadraticCoefficients, "numberOfQuadraticTerms",
+        numQuadTerms + length(quadval))
+
+    if sense == '<'
+        (lb, ub) = (-Inf, rhs)
+    elseif sense == '>'
+        (lb, ub) = (rhs, Inf)
+    elseif sense == '='
+        (lb, ub) = (rhs, rhs)
+    else
+        error("Unknown quadratic constraint sense $sense")
+    end
+    MathProgBase.addconstr!(m, linearidx, linearval, lb, ub)
+    m.numLinConstr -= 1 # since this constraint is quadratic, not linear
+    m.numQuadConstr += 1
+    return m # or the new <con> xml element, or nothing ?
+end
+
+# TODO: quad duals, getquadconstrRHS, setquadconstrRHS!,
+# getconstrsolution, getconstrmatrix, getrawsolver, getsolvetime,
+# sos constraints, basis, infeasibility/unbounded rays?
 

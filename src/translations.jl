@@ -127,8 +127,8 @@ function expr2osnl!(parent, ex::Expr)
     numargs = length(args)
     if head == :call
         if numargs < 2
-            error("Do not know how to handle :call expression $ex " *
-                "with fewer than 2 args")
+            error("Do not know how to handle :call expression ", ex,
+                " with fewer than 2 args")
         elseif numargs == 2
             if haskey(jl2osnl_unary, args[1])
                 child = new_child(parent, jl2osnl_unary[args[1]])

@@ -17,7 +17,7 @@ end
 include("translations.jl")
 
 depsjl = Pkg.dir("CoinOptServices", "deps", "deps.jl")
-isfile(depsjl) ? include(depsjl) : error("CoinOptServices not properly " *
+isfile(depsjl) ? include(depsjl) : error("CoinOptServices not properly ",
     "installed. Please run\nPkg.build(\"CoinOptServices\")")
 OSSolverService = joinpath(dirname(libOS), "..", "bin", "OSSolverService")
 osildir = Pkg.dir("CoinOptServices", ".osil")
@@ -394,8 +394,8 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     end
     if statusdescription != nothing
         if m.status != :UserLimit && startswith(statusdescription, "LIMIT")
-            warn("osrl status was $statustype but description was:\n" *
-                "$statusdescription, so setting m.status = :UserLimit")
+            warn("osrl status was $statustype but description was:\n",
+                statusdescription, " so setting m.status = :UserLimit")
             m.status = :UserLimit
         elseif statustype == "error" && (statusdescription ==
                 "The problem is infeasible")
@@ -410,7 +410,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     variables = find_element(solution, "variables")
     if variables == nothing
         m.solution = fill(NaN, m.numberOfVariables)
-        (m.status == :Optimal) && warn("status was $statustype but no " *
+        (m.status == :Optimal) && warn("status was $statustype but no ",
             "variables were present in $osrl")
     else
         varvalues = find_element(variables, "values")
@@ -446,7 +446,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     objectives = find_element(solution, "objectives")
     if objectives == nothing
         m.objval = NaN
-        (m.status == :Optimal) && warn("status was $statustype but no " *
+        (m.status == :Optimal) && warn("status was $statustype but no ",
             "objectives were present in $osrl")
     else
         objvalues = find_element(objectives, "values")
@@ -476,9 +476,9 @@ end
 function MathProgBase.optimize!(m::OsilMathProgModel)
     if m.objsense == :Max && isdefined(m, :d) && isdefined(m, :vartypes) &&
             any(x -> !(x == :Cont || x == :Fixed), m.vartypes)
-        warn("Maximization problems can be buggy with " *
-            "OSSolverService and MINLP solvers, see " *
-            "https://projects.coin-or.org/OS/ticket/52. Formulate your " *
+        warn("Maximization problems can be buggy with ",
+            "OSSolverService and MINLP solvers, see ",
+            "https://projects.coin-or.org/OS/ticket/52. Formulate your ",
             "problem as a minimization for more reliable results.")
     end
     save_file(m.xdoc, m.osil)
@@ -567,8 +567,8 @@ function MathProgBase.setvarLB!(m::OsilMathProgModel, xl::Vector{Float64})
     for i = 1:length(xl)
         xi = xvec[i]
         if xl[i] < 0.0 && attribute(xi, "type") == "B"
-            warn("Setting lower bound for binary variable x[$i] to 0.0 ",
-                "(was $(xl[i]))")
+            warn("Setting lower bound for binary variable x[$i] ",
+                "to 0.0 (was $(xl[i]))")
             xl[i] = 0.0
         end
         set_attribute(xi, "lb", xl[i])
@@ -582,8 +582,8 @@ function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
     for i = 1:length(xu)
         xi = xvec[i]
         if xu[i] > 1.0 && attribute(xi, "type") == "B"
-            warn("Setting upper bound for binary variable x[$i] to 1.0 ",
-                "(was $(xu[i]))")
+            warn("Setting upper bound for binary variable x[$i] ",
+                "to 1.0 (was $(xu[i]))")
             xu[i] = 1.0
         end
         set_attribute(xi, "ub", xu[i])

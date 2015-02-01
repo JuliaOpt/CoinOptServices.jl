@@ -160,15 +160,6 @@ function MathProgBase.setobj!(m::OsilMathProgModel, f)
     set_attribute(m.obj, "numberOfObjCoef", numberOfObjCoef)
 end
 
-function create_empty_linconstr!(m::OsilMathProgModel)
-    linConstrCoefs = new_child(m.instanceData, "linearConstraintCoefficients")
-    rowstarts = new_child(linConstrCoefs, "start")
-    add_text(new_child(rowstarts, "el"), "0")
-    colIdx = new_child(linConstrCoefs, "colIdx")
-    values = new_child(linConstrCoefs, "value")
-    return (linConstrCoefs, rowstarts, colIdx, values)
-end
-
 function MathProgBase.loadproblem!(m::OsilMathProgModel,
         A, xl, xu, f, cl, cu, objsense)
     # populate osil data that is specific to linear problems
@@ -198,8 +189,7 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
             add_text(new_child(rowstarts, "el"), string(rowptr[i] - 1)) # OSiL is 0-based
         end
         for i = 1:length(colval)
-            add_text(new_child(colIdx, "el"), string(colval[i] - 1)) # OSiL is 0-based
-            add_text(new_child(values, "el"), string(nzval[i]))
+            addnonzero!(colIdx, values, colval[i] - 1, nzval[i]) # OSiL is 0-based
         end
     end
     m.numLinConstr = length(cl)
@@ -273,9 +263,7 @@ function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
         idx = findnext(indicator, 1)
         while idx != 0
             numberOfValues += 1
-            add_text(new_child(colIdx, "el"), string(idx - 1)) # OSiL is 0-based
-            add_text(new_child(values, "el"), string(densevals[idx]))
-
+            addnonzero!(colIdx, values, idx - 1, densevals[idx]) # OSiL is 0-based
             densevals[idx] = 0.0 # reset for next row
             idx = findnext(indicator, idx + 1)
         end

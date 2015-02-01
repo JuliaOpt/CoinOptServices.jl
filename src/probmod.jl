@@ -41,6 +41,22 @@ function newobjcoef!(obj::XMLElement, idx, val)
     return coef
 end
 
+function create_empty_linconstr!(m::OsilMathProgModel)
+    linConstrCoefs = new_child(m.instanceData, "linearConstraintCoefficients")
+    rowstarts = new_child(linConstrCoefs, "start")
+    add_text(new_child(rowstarts, "el"), "0")
+    colIdx = new_child(linConstrCoefs, "colIdx")
+    values = new_child(linConstrCoefs, "value")
+    return (linConstrCoefs, rowstarts, colIdx, values)
+end
+
+function addnonzero!(colIdx, values, idx, val)
+    # add a nonzero element to colIdx and values, with 0-based idx
+    add_text(new_child(colIdx, "el"), string(idx))
+    add_text(new_child(values, "el"), string(val))
+    return val
+end
+
 function setattr!(parent::XMLElement, attr, v::Vector{Float64})
     i = 0
     for child in child_elements(parent)
@@ -187,13 +203,33 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
         values = find_element(linConstrCoefs, "value")
         numberOfValues = int(attribute(linConstrCoefs, "numberOfValues"))
     end
-    numberOfValues += length(varidx)
+    numdupes = 0
+    if issorted(varidx, lt = (<=)) # this means strictly increasing
+        for i = 1:length(varidx)
+            addnonzero!(colIdx, values, varidx[i] - 1, coef[i]) # OSiL is 0-based
+        end
+    else
+        # we have the whole vector of indices here,
+        # maybe better to sort than use a dense bitarray
+        p = sortperm(varidx)
+        curidx = varidx[p[1]]
+        curval = coef[p[1]]
+        for i = 2:length(p)
+            nextidx = varidx[p[i]]
+            if nextidx > curidx
+                addnonzero!(colIdx, values, curidx - 1, curval) # OSiL is 0-based
+                curidx = nextidx
+                curval = coef[p[i]]
+            else
+                numdupes += 1
+                curval += coef[p[i]]
+            end
+        end
+        addnonzero!(colIdx, values, curidx - 1, curval) # OSiL is 0-based
+    end
+    numberOfValues += length(varidx) - numdupes
     set_attribute(linConstrCoefs, "numberOfValues", numberOfValues)
     add_text(new_child(rowstarts, "el"), string(numberOfValues))
-    for i = 1:length(varidx)
-        add_text(new_child(colIdx, "el"), string(varidx[i] - 1)) # OSiL is 0-based
-        add_text(new_child(values, "el"), string(coef[i]))
-    end
 
     m.numberOfConstraints += 1
     m.numLinConstr += 1

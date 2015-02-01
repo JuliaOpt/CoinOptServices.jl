@@ -77,6 +77,8 @@ type OsilMathProgModel <: AbstractMathProgModel
     obj::XMLElement
     variables::XMLElement
     constraints::XMLElement
+    quadraticCoefficients::XMLElement
+    quadobjterms::Vector{XMLElement}
 
     OsilMathProgModel(solver, osil, osol, osrl, printLevel; options...) =
         new(solver, osil, osol, osrl, printLevel, options)

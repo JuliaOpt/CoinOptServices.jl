@@ -154,4 +154,43 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     return m # or the new <con> xml element, or nothing ?
 end
 
+function newquadterm!(parent::XMLElement, conidx, rowidx, colidx, val)
+    term = new_child(parent, "qTerm")
+    set_attribute(term, "idx", conidx) # -1 for objective terms
+    set_attribute(term, "idxOne", rowidx - 1) # OSiL is 0-based
+    set_attribute(term, "idxTwo", colidx - 1) # OSiL is 0-based
+    set_attribute(term, "coef", val)
+    return term
+end
+
+function MathProgBase.setquadobjterms!(m::OsilMathProgModel,
+        rowidx, colidx, quadval)
+    @assertequal(length(rowidx), length(colidx))
+    @assertequal(length(rowidx), length(quadval))
+    if isdefined(m, :quadraticCoefficients)
+        numQuadTerms = int(attribute(m.quadraticCoefficients,
+            "numberOfQuadraticTerms"))
+    else
+        m.quadraticCoefficients = new_child(m.instanceData,
+            "quadraticCoefficients")
+        numQuadTerms = 0
+    end
+    if isdefined(m, :quadobjterms)
+        numQuadTerms -= length(m.quadobjterms)
+        # unlink and free any existing quadratic objective terms
+        for el in m.quadobjterms
+            unlink(el)
+            free(el)
+        end
+    end
+    quadobjterms = Array(XMLElement, length(quadval))
+    for i = 1:length(quadval)
+        quadobjterms[i] = newquadterm!(m.quadraticCoefficients, "-1",
+            rowidx[i], colidx[i], quadval[i])
+    end
+    m.quadobjterms = quadobjterms
+    set_attribute(m.quadraticCoefficients, "numberOfQuadraticTerms",
+        numQuadTerms + length(quadval))
+    return m # or the new quadobjterms, or nothing ?
+end
 

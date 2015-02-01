@@ -471,7 +471,7 @@ end
 
 function MathProgBase.optimize!(m::OsilMathProgModel)
     if m.objsense == :Max && isdefined(m, :d) && isdefined(m, :vartypes) &&
-            !all(x -> (x == :Cont || x == :Fixed), m.vartypes)
+            any(x -> !(x == :Cont || x == :Fixed), m.vartypes)
         warn("Maximization problems can be buggy with " *
             "OSSolverService and MINLP solvers, see " *
             "https://projects.coin-or.org/OS/ticket/52. Formulate your " *
@@ -536,11 +536,55 @@ function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol}
     for i = 1:length(vartypes)
         if haskey(jl2osil_vartypes, vartypes[i])
             set_attribute(vars[i], "type", jl2osil_vartypes[vartypes[i]])
+            if vartypes[i] == :Bin
+                if m.xl[i] < 0.0
+                    warn("Setting lower bound for binary variable $i to ",
+                        "0.0 (was $(m.xl[i]))")
+                    m.xl[i] = 0.0
+                    set_attribute(vars[i], "lb", 0.0)
+                end
+                if m.xu[i] > 1.0
+                    warn("Setting upper bound for binary variable $i to ",
+                        "1.0 (was $(m.xu[i]))")
+                    m.xu[i] = 1.0
+                    set_attribute(vars[i], "ub", 1.0)
+                end
+            end
         else
             error("Unrecognized vartype $(vartypes[i])")
         end
     end
     m.vartypes = vartypes
+end
+
+function MathProgBase.setvarLB!(m::OsilMathProgModel, xl::Vector{Float64})
+    xvec = m.vars
+    @assertequal(length(xvec), length(xl))
+    for i = 1:length(xl)
+        xi = xvec[i]
+        if xl[i] < 0.0 && attribute(xi, "type") == "B"
+            warn("Setting lower bound for binary variable $i to 0.0 ",
+                "(was $(xl[i]))")
+            xl[i] = 0.0
+        end
+        set_attribute(xi, "lb", xl[i])
+    end
+    m.xl = xl
+end
+
+function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
+    xvec = m.vars
+    @assertequal(length(xvec), length(xu))
+    for i = 1:length(xl)
+        xi = xvec[i]
+        if xu[i] > 1.0 && attribute(xi, "type") == "B"
+            warn("Setting upper bound for binary variable $i to 1.0 ",
+                "(was $(xu[i]))")
+            xu[i] = 1.0
+        end
+        set_attribute(xi, "ub", xu[i])
+    end
+    m.xu = xu
 end
 
 function setbounds!(xvec::Vector{XMLElement}, b::Vector{Float64}, attr)
@@ -549,14 +593,6 @@ function setbounds!(xvec::Vector{XMLElement}, b::Vector{Float64}, attr)
         set_attribute(xvec[i], attr, b[i])
     end
     return b
-end
-
-function MathProgBase.setvarLB!(m::OsilMathProgModel, xl::Vector{Float64})
-    m.xl = setbounds!(m.vars, xl, "lb")
-end
-
-function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
-    m.xu = setbounds!(m.vars, xu, "ub")
 end
 
 function MathProgBase.setconstrLB!(m::OsilMathProgModel, cl::Vector{Float64})

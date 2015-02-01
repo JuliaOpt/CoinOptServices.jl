@@ -95,7 +95,7 @@ similarly ``osol`` or ``osrl`` keyword arguments to request non-default
 paths for writing the OSiL instance file, OSoL options file, or OSrL
 results file. The default location for writing these files is under
 ``Pkg.dir("CoinOptServices", ".osil")``. The ``printLevel`` keyword argument
-can be set to an integer from 0 to 7, and corresponds to the ``-printLevel``
+can be set to an integer from 0 to 5, and corresponds to the ``-printLevel``
 command line flag for ``OSSolverService``. This only controls the print
 level of the OS driver, not the solvers themselves. Solver-specific options
 must be provided as additional keyword arguments, which will be saved in

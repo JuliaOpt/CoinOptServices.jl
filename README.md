@@ -94,9 +94,12 @@ a particular sub-solver, ``OsilSolver(osil = "/path/to/file.osil")`` or
 similarly ``osol`` or ``osrl`` keyword arguments to request non-default
 paths for writing the OSiL instance file, OSoL options file, or OSrL
 results file. The default location for writing these files is under
-``Pkg.dir("CoinOptServices", ".osil")``. Any other keyword arguments
-provided to the ``OsilSolver`` constructor are interpreted as solver options
-and saved in the OSoL options file.
+``Pkg.dir("CoinOptServices", ".osil")``. The ``printLevel`` keyword argument
+can be set to an integer from 0 to 7, and corresponds to the ``-printLevel``
+command line flag for ``OSSolverService``. This only controls the print
+level of the OS driver, not the solvers themselves. Solver-specific options
+must be provided as additional keyword arguments, which will be saved in
+the OSoL options file.
 
 CoinOptServices should also work with any other MathProgBase-compliant
 linear or nonlinear optimization modeling tools, though this has not been

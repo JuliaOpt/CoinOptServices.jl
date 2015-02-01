@@ -380,11 +380,18 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     else
         error("Unknown solution status type $statustype")
     end
-    if statusdescription != nothing && startswith(statusdescription, "LIMIT")
-        if m.status != :UserLimit
+    if statusdescription != nothing
+        if m.status != :UserLimit && startswith(statusdescription, "LIMIT")
             warn("osrl status was $statustype but description was:\n" *
                 "$statusdescription, so setting m.status = :UserLimit")
             m.status = :UserLimit
+        elseif statustype == "error" && (statusdescription ==
+                "The problem is infeasible")
+            m.status = :Infeasible
+        elseif statustype == "error" && (statusdescription ==
+                "The problem is unbounded" ||
+                startswith(statusdescription, "CONTINUOUS_UNBOUNDED")
+            m.status = :Unbounded
         end
     end
 
@@ -477,6 +484,8 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
     else
         write_osol_file(m.osol, Float64[], m.options)
     end
+    # clear existing content from m.osrl, if any
+    close(open(m.osrl, "w"))
     if isempty(m.solver)
         solvercmd = `` # use default
     else
@@ -484,7 +493,13 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
     end
     run(`$OSSolverService -osil $(m.osil) -osol $(m.osol) -osrl $(m.osrl)
         $solvercmd`)
-    return read_osrl_file!(m, m.osrl)
+    if filesize(m.osrl) == 0
+        warn(m.osrl, " is empty")
+        m.status = :Error
+    else
+        read_osrl_file!(m, m.osrl)
+    end
+    return m.status
 end
 
 # getters

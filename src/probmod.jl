@@ -63,12 +63,14 @@ function addnonzero!(colIdx, values, idx, val)
 end
 
 function setattr!(parent::XMLElement, attr, v::Vector{Float64})
-    i = 0
-    for child in child_elements(parent)
-        i += 1
-        set_attribute(child, attr, v[i])
+    if length(v) > 0
+        i = 0
+        for child in child_elements(parent)
+            i += 1
+            set_attribute(child, attr, v[i])
+        end
+        @assertequal(i, length(v))
     end
-    @assertequal(i, length(v))
     return v
 end
 

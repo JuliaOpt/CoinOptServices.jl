@@ -8,12 +8,14 @@ MathProgBase.getobjval(m::OsilMathProgModel) = m.objval
 MathProgBase.getsolution(m::OsilMathProgModel) = m.solution
 MathProgBase.getreducedcosts(m::OsilMathProgModel) = m.reducedcosts
 MathProgBase.getconstrduals(m::OsilMathProgModel) = m.constrduals
+MathProgBase.getquadconstrduals(m::OsilMathProgModel) = m.quadconstrduals
 MathProgBase.getsense(m::OsilMathProgModel) = m.objsense
 MathProgBase.getvartype(m::OsilMathProgModel) = m.vartypes
 MathProgBase.getvarLB(m::OsilMathProgModel) = m.xl
 MathProgBase.getvarUB(m::OsilMathProgModel) = m.xu
 MathProgBase.getconstrLB(m::OsilMathProgModel) = m.cl
 MathProgBase.getconstrUB(m::OsilMathProgModel) = m.cu
+MathProgBase.getquadconstrRHS(m::OsilMathProgModel) = m.qrhs
 MathProgBase.getobj(m::OsilMathProgModel) =
     xml2vec(m.obj, m.numberOfVariables, 0.0)
 
@@ -62,18 +64,6 @@ function addnonzero!(colIdx, values, idx, val)
     return val
 end
 
-function setattr!(parent::XMLElement, attr, v::Vector{Float64})
-    if length(v) > 0
-        i = 0
-        for child in child_elements(parent)
-            i += 1
-            set_attribute(child, attr, v[i])
-        end
-        @assertequal(i, length(v))
-    end
-    return v
-end
-
 function initialize_quadcoefs!(m::OsilMathProgModel)
     # return numberOfQuadraticTerms if quadraticCoefficients has been
     # created, otherwise create quadraticCoefficients and return 0
@@ -96,7 +86,38 @@ function newquadterm!(parent::XMLElement, conidx, rowidx, colidx, val)
     return term
 end
 
+function splitlinquad(m::OsilMathProgModel, v::Vector{Float64})
+    # split linear and quadratic parts from a constraint vector
+    linpart = Array(Float64, m.numberOfConstraints - m.numQuadConstr)
+    quadpart = Array(Float64, m.numQuadConstr)
+    prevquadidx = 0
+    for (q, nextquadidx) in enumerate(m.quadconidx)
+        linconrange = (prevquadidx + 1 : nextquadidx - 1)
+        linpart[linconrange - q + 1] = v[linconrange]
+        quadpart[q] = v[nextquadidx]
+        prevquadidx = nextquadidx
+    end
+    linconrange = (prevquadidx + 1 : m.numberOfConstraints)
+    linpart[linconrange - m.numQuadConstr] = v[linconrange]
+    return (linpart, quadpart)
+end
+
 # setters
+function MathProgBase.setobj!(m::OsilMathProgModel, f)
+    # remove and overwrite any existing objective coefficients
+    for el in child_elements(m.obj)
+        unlink(el)
+        free(el)
+    end
+    numberOfObjCoef = 0
+    for (i, val) in enumerate(f)
+        (val == 0.0) && continue
+        numberOfObjCoef += 1
+        newobjcoef!(m.obj, i - 1, val) # OSiL is 0-based
+    end
+    set_attribute(m.obj, "numberOfObjCoef", numberOfObjCoef)
+end
+
 function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})
     i = 0
     for vari in child_elements(m.variables)
@@ -155,12 +176,44 @@ function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
     m.xu = xu
 end
 
+function setlinconstrbounds!(m::OsilMathProgModel, attr, v::Vector{Float64})
+    if length(v) > 0
+        i = 0
+        q = 1
+        # need to skip quadratic constraints since MPB treats those separately
+        if m.numQuadConstr == 0
+            for child in child_elements(m.constraints)
+                i += 1
+                set_attribute(child, attr, v[i])
+            end
+        else
+            nextquadidx = m.quadconidx[q]
+            for child in child_elements(m.constraints)
+                i += 1
+                if i == nextquadidx
+                    q += 1
+                    if q <= m.numQuadConstr
+                        nextquadidx = m.quadconidx[q]
+                    else
+                        nextquadidx = length(v) + 1
+                    end
+                    continue
+                else
+                    set_attribute(child, attr, v[i - q + 1])
+                end
+            end
+        end
+        @assertequal(i - q + 1, length(v))
+    end
+    return v
+end
+
 function MathProgBase.setconstrLB!(m::OsilMathProgModel, cl::Vector{Float64})
-    m.cl = setattr!(m.constraints, "lb", cl)
+    m.cl = setlinconstrbounds!(m, "lb", cl)
 end
 
 function MathProgBase.setconstrUB!(m::OsilMathProgModel, cu::Vector{Float64})
-    m.cu = setattr!(m.constraints, "ub", cu)
+    m.cu = setlinconstrbounds!(m, "ub", cu)
 end
 
 function MathProgBase.setsense!(m::OsilMathProgModel, objsense::Symbol)
@@ -194,6 +247,8 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
         error("Adding a constraint to a nonlinear model not implemented")
         # addnlconstr! could be done though, if it existed in MathProgBase
     end
+    push!(m.cl, lb)
+    push!(m.cu, ub)
     newcon!(m.constraints, lb, ub)
 
     if m.numLinConstr + m.numQuadConstr == 0 && length(varidx) > 0
@@ -255,7 +310,7 @@ function MathProgBase.setquadobjterms!(m::OsilMathProgModel,
     numQuadTerms = initialize_quadcoefs!(m)
     if isdefined(m, :quadobjterms)
         numQuadTerms -= length(m.quadobjterms)
-        # unlink and free any existing quadratic objective terms
+        # remove and overwrite any existing quadratic objective terms
         for el in m.quadobjterms
             unlink(el)
             free(el)
@@ -286,6 +341,7 @@ function MathProgBase.addquadconstr!(m::OsilMathProgModel, linearidx,
     set_attribute(m.quadraticCoefficients, "numberOfQuadraticTerms",
         numQuadTerms + length(quadval))
 
+    push!(m.qrhs, rhs)
     if sense == '<'
         (lb, ub) = (-Inf, rhs)
     elseif sense == '>'
@@ -295,13 +351,17 @@ function MathProgBase.addquadconstr!(m::OsilMathProgModel, linearidx,
     else
         error("Unknown quadratic constraint sense $sense")
     end
+    # only if linear constraints exist or are being added here,
+    # otherwise just do newcon!
     MathProgBase.addconstr!(m, linearidx, linearval, lb, ub)
     m.numLinConstr -= 1 # since this constraint is quadratic, not linear
+    pop!(m.cl) # MathProgBase treats quadratic constraints separately
+    pop!(m.cu)
     m.numQuadConstr += 1
+    push!(m.quadconidx, m.numberOfConstraints)
     return m # or the new <con> xml element, or nothing ?
 end
 
-# TODO: quad duals, getquadconstrRHS, setquadconstrRHS!,
-# getconstrsolution, getconstrmatrix, getrawsolver, getsolvetime,
-# sos constraints, basis, infeasibility/unbounded rays?
+# TODO: setquadconstrRHS!, getconstrsolution, getconstrmatrix, getrawsolver,
+# getsolvetime, sos constraints, basis, infeasibility/unbounded rays?
 

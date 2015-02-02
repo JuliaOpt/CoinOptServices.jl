@@ -59,6 +59,7 @@ type OsilMathProgModel <: AbstractMathProgModel
     xu::Vector{Float64}
     cl::Vector{Float64}
     cu::Vector{Float64}
+    qrhs::Vector{Float64}
     objsense::Symbol
     d::AbstractNLPEvaluator
 
@@ -67,11 +68,12 @@ type OsilMathProgModel <: AbstractMathProgModel
     vartypes::Vector{Symbol}
     x0::Vector{Float64}
 
+    status::Symbol
     objval::Float64
     solution::Vector{Float64}
     reducedcosts::Vector{Float64}
     constrduals::Vector{Float64}
-    status::Symbol
+    quadconstrduals::Vector{Float64}
 
     xdoc::XMLDocument # TODO: finalizer
     instanceData::XMLElement
@@ -80,6 +82,7 @@ type OsilMathProgModel <: AbstractMathProgModel
     constraints::XMLElement
     quadraticCoefficients::XMLElement
     quadobjterms::Vector{XMLElement}
+    quadconidx::Vector{Int}
 
     OsilMathProgModel(solver, osil, osol, osrl, printLevel; options...) =
         new(solver, osil, osol, osrl, printLevel, options)
@@ -139,25 +142,11 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     for i = 1:numberOfConstraints
         newcon!(m.constraints, cl[i], cu[i])
     end
-    m.numQuadConstr = 0 # move this once MathProgBase.loadquadproblem! exists
+    m.numQuadConstr = 0 # move these once MathProgBase.loadquadproblem! exists
+    m.qrhs = Float64[]
+    m.quadconidx = Int[]
 
     return m
-end
-
-function MathProgBase.setobj!(m::OsilMathProgModel, f)
-    # unlink and free any existing children of m.obj
-    for el in child_elements(m.obj)
-        unlink(el)
-        free(el)
-    end
-    numberOfObjCoef = 0
-    for i = 1:length(f)
-        val = f[i]
-        (val == 0.0) && continue
-        numberOfObjCoef += 1
-        newobjcoef!(m.obj, i - 1, val) # OSiL is 0-based
-    end
-    set_attribute(m.obj, "numberOfObjCoef", numberOfObjCoef)
 end
 
 function MathProgBase.loadproblem!(m::OsilMathProgModel,
@@ -323,10 +312,10 @@ function write_osol_file(osol, x0, options)
         initialVariableValues = new_child(variables, "initialVariableValues")
         set_attribute(initialVariableValues, "numberOfVar", length(x0))
     end
-    for idx = 1:length(x0)
+    for (idx, val) in enumerate(x0)
         vari = new_child(initialVariableValues, "var")
         set_attribute(vari, "idx", idx - 1) # OSiL is 0-based
-        set_attribute(vari, "value", x0[idx])
+        set_attribute(vari, "value", val)
     end
 
     # TODO: implement these differently
@@ -368,9 +357,8 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         error("Unknown solution status type $statustype")
     end
     if statusdescription != nothing
-        if m.status != :UserLimit && startswith(statusdescription, "LIMIT")
-            warn("osrl status was $statustype but description was:\n",
-                statusdescription, " so setting m.status = :UserLimit")
+        # OSBonminSolver and OSCouenneSolver set some funny exit statuses
+        if statustype == "other" && startswith(statusdescription, "LIMIT")
             m.status = :UserLimit
         elseif statustype == "error" && (statusdescription ==
                 "The problem is infeasible")
@@ -440,7 +428,14 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         dualValues = find_element(constraints, "dualValues")
         @assertequal(int(attribute(dualValues, "numberOfCon")),
             m.numberOfConstraints)
-        m.constrduals = xml2vec(dualValues, m.numberOfConstraints)
+        if m.numQuadConstr == 0
+            m.constrduals = xml2vec(dualValues, m.numberOfConstraints)
+        else
+            # MathProgBase wants quadratic constraint duals separately
+            # from linear / nonlinear constraint duals
+            (m.constrduals, m.quadconstrduals) = splitlinquad(m,
+                xml2vec(dualValues, m.numberOfConstraints))
+        end
     end
 
     # TODO: more status details/messages?

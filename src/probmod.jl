@@ -47,6 +47,11 @@ function create_empty_linconstr!(m::OsilMathProgModel)
     add_text(new_child(rowstarts, "el"), "0")
     colIdx = new_child(linConstrCoefs, "colIdx")
     values = new_child(linConstrCoefs, "value")
+    if isdefined(m, :quadraticCoefficients)
+        # need to rearrange so quadraticCoefficients come after linear
+        unlink(m.quadraticCoefficients)
+        add_child(m.instanceData, m.quadraticCoefficients)
+    end
     return (linConstrCoefs, rowstarts, colIdx, values)
 end
 
@@ -189,7 +194,7 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     end
     newcon!(m.constraints, lb, ub)
 
-    if m.numLinConstr + m.numQuadConstr == 0
+    if m.numLinConstr + m.numQuadConstr == 0 && length(varidx) > 0
         (linConstrCoefs, rowstarts, colIdx, values) =
             create_empty_linconstr!(m)
         numberOfValues = 0
@@ -198,17 +203,19 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
         # data as part of m, but choosing not to optimize this much
         linConstrCoefs = find_element(m.instanceData,
             "linearConstraintCoefficients")
-        rowstarts = find_element(linConstrCoefs, "start")
-        colIdx = find_element(linConstrCoefs, "colIdx")
-        values = find_element(linConstrCoefs, "value")
-        numberOfValues = int(attribute(linConstrCoefs, "numberOfValues"))
+        if linConstrCoefs != nothing
+            rowstarts = find_element(linConstrCoefs, "start")
+            colIdx = find_element(linConstrCoefs, "colIdx")
+            values = find_element(linConstrCoefs, "value")
+            numberOfValues = int(attribute(linConstrCoefs, "numberOfValues"))
+        end
     end
     numdupes = 0
     if issorted(varidx, lt = (<=)) # this means strictly increasing
         for i = 1:length(varidx)
             addnonzero!(colIdx, values, varidx[i] - 1, coef[i]) # OSiL is 0-based
         end
-    else
+    elseif length(varidx) > 0
         # we have the whole vector of indices here,
         # maybe better to sort than use a dense bitarray
         p = sortperm(varidx)
@@ -227,9 +234,11 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
         end
         addnonzero!(colIdx, values, curidx - 1, curval) # OSiL is 0-based
     end
-    numberOfValues += length(varidx) - numdupes
-    set_attribute(linConstrCoefs, "numberOfValues", numberOfValues)
-    add_text(new_child(rowstarts, "el"), string(numberOfValues))
+    if linConstrCoefs != nothing
+        numberOfValues += length(varidx) - numdupes
+        set_attribute(linConstrCoefs, "numberOfValues", numberOfValues)
+        add_text(new_child(rowstarts, "el"), string(numberOfValues))
+    end
 
     m.numberOfConstraints += 1
     m.numLinConstr += 1

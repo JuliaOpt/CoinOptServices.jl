@@ -42,12 +42,11 @@ function newobjcoef!(obj::XMLElement, idx, val)
 end
 
 function create_empty_linconstr!(m::OsilMathProgModel)
-    linConstrCoefs = new_child(m.instanceData, "linearConstraintCoefficients")
-    rowstarts = new_child(linConstrCoefs, "start")
+    rowstarts = new_child(m.linearConstraintCoefficients, "start")
     add_text(new_child(rowstarts, "el"), "0")
-    colIdx = new_child(linConstrCoefs, "colIdx")
-    values = new_child(linConstrCoefs, "value")
-    return (linConstrCoefs, rowstarts, colIdx, values)
+    colIdx = new_child(m.linearConstraintCoefficients, "colIdx")
+    values = new_child(m.linearConstraintCoefficients, "value")
+    return (rowstarts, colIdx, values)
 end
 
 function addnonzero!(colIdx, values, idx, val)
@@ -65,19 +64,6 @@ function setattr!(parent::XMLElement, attr, v::Vector{Float64})
     end
     @assertequal(i, length(v))
     return v
-end
-
-function initialize_quadcoefs!(m::OsilMathProgModel)
-    # return numberOfQuadraticTerms if quadraticCoefficients has been
-    # created, otherwise create quadraticCoefficients and return 0
-    if isdefined(m, :quadraticCoefficients)
-        return int(attribute(m.quadraticCoefficients,
-            "numberOfQuadraticTerms"))
-    else
-        m.quadraticCoefficients = new_child(m.instanceData,
-            "quadraticCoefficients")
-        return 0
-    end
 end
 
 function newquadterm!(parent::XMLElement, conidx, rowidx, colidx, val)
@@ -189,18 +175,12 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     end
     newcon!(m.constraints, lb, ub)
 
+    linConstrCoefs = m.linearConstraintCoefficients
     if m.numLinConstr + m.numQuadConstr == 0
-        (linConstrCoefs, rowstarts, colIdx, values) =
-            create_empty_linconstr!(m)
+        (rowstarts, colIdx, values) = create_empty_linconstr!(m)
         numberOfValues = 0
     else
-        # could save linConstrCoefs and the sparse matrix
-        # data as part of m, but choosing not to optimize this much
-        linConstrCoefs = find_element(m.instanceData,
-            "linearConstraintCoefficients")
-        rowstarts = find_element(linConstrCoefs, "start")
-        colIdx = find_element(linConstrCoefs, "colIdx")
-        values = find_element(linConstrCoefs, "value")
+        (rowstarts, colIdx, values) = collect(child_elements(linConstrCoefs))
         numberOfValues = int(attribute(linConstrCoefs, "numberOfValues"))
     end
     numdupes = 0
@@ -241,7 +221,8 @@ function MathProgBase.setquadobjterms!(m::OsilMathProgModel,
         rowidx, colidx, quadval)
     @assertequal(length(rowidx), length(colidx))
     @assertequal(length(rowidx), length(quadval))
-    numQuadTerms = initialize_quadcoefs!(m)
+    numQuadTerms = int(attribute(m.quadraticCoefficients,
+        "numberOfQuadraticTerms"))
     if isdefined(m, :quadobjterms)
         numQuadTerms -= length(m.quadobjterms)
         # unlink and free any existing quadratic objective terms
@@ -265,7 +246,8 @@ function MathProgBase.addquadconstr!(m::OsilMathProgModel, linearidx,
         linearval, quadrowidx, quadcolidx, quadval, sense, rhs)
     @assertequal(length(quadrowidx), length(quadcolidx))
     @assertequal(length(quadrowidx), length(quadval))
-    numQuadTerms = initialize_quadcoefs!(m)
+    numQuadTerms = int(attribute(m.quadraticCoefficients,
+        "numberOfQuadraticTerms"))
     # use old numberOfConstraints since OSiL is 0-based
     conidx = m.numberOfConstraints
     for i = 1:length(quadval)

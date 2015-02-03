@@ -3,7 +3,7 @@ MathProgBase.status(m::OsilMathProgModel) = m.status
 MathProgBase.numvar(m::OsilMathProgModel) = m.numberOfVariables
 MathProgBase.numconstr(m::OsilMathProgModel) = m.numberOfConstraints
 MathProgBase.numlinconstr(m::OsilMathProgModel) = m.numLinConstr
-MathProgBase.numquadconstr(m::OsilMathProgModel) = m.numQuadConstr
+MathProgBase.numquadconstr(m::OsilMathProgModel) = length(m.quadconidx)
 MathProgBase.getobjval(m::OsilMathProgModel) = m.objval
 MathProgBase.getsolution(m::OsilMathProgModel) = m.solution
 MathProgBase.getreducedcosts(m::OsilMathProgModel) = m.reducedcosts
@@ -88,8 +88,11 @@ end
 
 function splitlinquad(m::OsilMathProgModel, v::Vector{Float64})
     # split linear and quadratic parts from a constraint vector
-    linpart = Array(Float64, m.numberOfConstraints - m.numQuadConstr)
-    quadpart = Array(Float64, m.numQuadConstr)
+    # assuming quadratic constraints and expression-tree nonlinear
+    # constraints are never both present
+    numquadconstr = length(m.quadconidx)
+    linpart = Array(Float64, m.numberOfConstraints - numquadconstr)
+    quadpart = Array(Float64, numquadconstr)
     prevquadidx = 0
     for (q, nextquadidx) in enumerate(m.quadconidx)
         linconrange = (prevquadidx + 1 : nextquadidx - 1)
@@ -98,7 +101,7 @@ function splitlinquad(m::OsilMathProgModel, v::Vector{Float64})
         prevquadidx = nextquadidx
     end
     linconrange = (prevquadidx + 1 : m.numberOfConstraints)
-    linpart[linconrange - m.numQuadConstr] = v[linconrange]
+    linpart[linconrange - numquadconstr] = v[linconrange]
     return (linpart, quadpart)
 end
 
@@ -155,6 +158,8 @@ function MathProgBase.setvarLB!(m::OsilMathProgModel, xl::Vector{Float64})
                 "to 0.0 (was $(xl[i]))")
             xl[i] = 0.0
         end
+        # set bound attribute unconditionally, even if infinite,
+        # to ensure any previously set value gets overwritten
         set_attribute(xi, "lb", xl[i])
     end
     @assertequal(i, length(xl))
@@ -170,6 +175,8 @@ function MathProgBase.setvarUB!(m::OsilMathProgModel, xu::Vector{Float64})
                 "to 1.0 (was $(xu[i]))")
             xu[i] = 1.0
         end
+        # set bound attribute unconditionally, even if infinite,
+        # to ensure any previously set value gets overwritten
         set_attribute(xi, "ub", xu[i])
     end
     @assertequal(i, length(xu))
@@ -181,9 +188,12 @@ function setlinconstrbounds!(m::OsilMathProgModel, attr, v::Vector{Float64})
         i = 0
         q = 1
         # need to skip quadratic constraints since MPB treats those separately
-        if m.numQuadConstr == 0
+        numquadconstr = length(m.quadconidx)
+        if numquadconstr == 0
             for child in child_elements(m.constraints)
                 i += 1
+                # set bound attribute unconditionally, even if infinite,
+                # to ensure any previously set value gets overwritten
                 set_attribute(child, attr, v[i])
             end
         else
@@ -192,18 +202,21 @@ function setlinconstrbounds!(m::OsilMathProgModel, attr, v::Vector{Float64})
                 i += 1
                 if i == nextquadidx
                     q += 1
-                    if q <= m.numQuadConstr
+                    if q <= numquadconstr
                         nextquadidx = m.quadconidx[q]
                     else
-                        nextquadidx = length(v) + 1
+                        nextquadidx = m.numberOfConstraints + 1
                     end
                     continue
                 else
+                    # set bound attribute unconditionally, even if infinite,
+                    # to ensure any previously set value gets overwritten
                     set_attribute(child, attr, v[i - q + 1])
                 end
             end
         end
         @assertequal(i - q + 1, length(v))
+        @assertequal(q - 1, numquadconstr)
     end
     return v
 end
@@ -243,7 +256,7 @@ end
 
 function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     @assertequal(length(varidx), length(coef))
-    if m.numLinConstr + m.numQuadConstr < m.numberOfConstraints
+    if m.numLinConstr + length(m.quadconidx) < m.numberOfConstraints
         error("Adding a constraint to a nonlinear model not implemented")
         # addnlconstr! could be done though, if it existed in MathProgBase
     end
@@ -251,7 +264,7 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     push!(m.cu, ub)
     newcon!(m.constraints, lb, ub)
 
-    if m.numLinConstr + m.numQuadConstr == 0 && length(varidx) > 0
+    if m.numLinConstr + length(m.quadconidx) == 0 && length(varidx) > 0
         (linConstrCoefs, rowstarts, colIdx, values) =
             create_empty_linconstr!(m)
         numberOfValues = 0
@@ -357,7 +370,6 @@ function MathProgBase.addquadconstr!(m::OsilMathProgModel, linearidx,
     m.numLinConstr -= 1 # since this constraint is quadratic, not linear
     pop!(m.cl) # MathProgBase treats quadratic constraints separately
     pop!(m.cu)
-    m.numQuadConstr += 1
     push!(m.quadconidx, m.numberOfConstraints)
     return m # or the new <con> xml element, or nothing ?
 end

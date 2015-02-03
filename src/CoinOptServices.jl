@@ -64,7 +64,7 @@ type OsilMathProgModel <: AbstractMathProgModel
     d::AbstractNLPEvaluator
 
     numLinConstr::Int
-    numQuadConstr::Int
+    quadconidx::Vector{Int}
     vartypes::Vector{Symbol}
     x0::Vector{Float64}
 
@@ -82,7 +82,6 @@ type OsilMathProgModel <: AbstractMathProgModel
     constraints::XMLElement
     quadraticCoefficients::XMLElement
     quadobjterms::Vector{XMLElement}
-    quadconidx::Vector{Int}
 
     OsilMathProgModel(solver, osil, osol, osrl, printLevel; options...) =
         new(solver, osil, osol, osrl, printLevel, options)
@@ -142,8 +141,7 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     for i = 1:numberOfConstraints
         newcon!(m.constraints, cl[i], cu[i])
     end
-    m.numQuadConstr = 0 # move these once MathProgBase.loadquadproblem! exists
-    m.qrhs = Float64[]
+    m.qrhs = Float64[] # move these once MathProgBase.loadquadproblem! exists
     m.quadconidx = Int[]
 
     return m
@@ -348,6 +346,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         warn("numberOfSolutions expected to be 1, was $numberOfSolutions")
     end
     solution = find_element(optimization, "solution")
+
     status = find_element(solution, "status")
     statustype = attribute(status, "type")
     statusdescription = attribute(status, "description")
@@ -428,7 +427,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         dualValues = find_element(constraints, "dualValues")
         @assertequal(int(attribute(dualValues, "numberOfCon")),
             m.numberOfConstraints)
-        if m.numQuadConstr == 0
+        if length(m.quadconidx) == 0
             m.constrduals = xml2vec(dualValues, m.numberOfConstraints)
         else
             # MathProgBase wants quadratic constraint duals separately

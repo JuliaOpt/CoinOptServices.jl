@@ -22,14 +22,14 @@ isfile(depsjl) ? include(depsjl) : error("CoinOptServices not properly ",
 OSSolverService = joinpath(dirname(libOS), "..", "bin", "OSSolverService")
 osildir = Pkg.dir("CoinOptServices", ".osil")
 
-export OsilSolver
+export OsilSolver, OsilBonminSolver, OsilCouenneSolver, OSOption
 immutable OsilSolver <: AbstractMathProgSolver
     solver::String
     osil::String
     osol::String
     osrl::String
     printLevel::Int
-    options
+    options::Vector{Dict}
 end
 # note that changing DEFAULT_OUTPUT_LEVEL in OS/src/OSUtils/OSOutput.h
 # from ENUM_OUTPUT_LEVEL_error (1) to -1 is required to make printLevel=0
@@ -38,12 +38,45 @@ end
 # have been read, and OSPrint shows output whenever the output level for a
 # call is <= the printLevel
 OsilSolver(;
-    solver = "",
-    osil = joinpath(osildir, "problem.osil"),
-    osol = joinpath(osildir, "options.osol"),
-    osrl = joinpath(osildir, "results.osrl"),
-    printLevel = 1,
-    options...) = OsilSolver(solver, osil, osol, osrl, printLevel, options)
+        solver = "",
+        osil = joinpath(osildir, "problem.osil"),
+        osol = joinpath(osildir, "options.osol"),
+        osrl = joinpath(osildir, "results.osrl"),
+        printLevel = 1,
+        options = Dict[]) =
+    OsilSolver(solver, osil, osol, osrl, printLevel, options)
+OsilBonminSolver(;
+        osil = joinpath(osildir, "problem.osil"),
+        osol = joinpath(osildir, "options.osol"),
+        osrl = joinpath(osildir, "results.osrl"),
+        printLevel = 1,
+        options = Dict[]) =
+    OsilSolver("bonmin", osil, osol, osrl, printLevel, options)
+OsilCouenneSolver(;
+        osil = joinpath(osildir, "problem.osil"),
+        osol = joinpath(osildir, "options.osol"),
+        osrl = joinpath(osildir, "results.osrl"),
+        printLevel = 1,
+        options = Dict[]) =
+    OsilSolver("couenne", osil, osol, osrl, printLevel, options)
+
+# translate keyword arguments into an option Dict
+# (can't make this a type since it would need a field named type)
+function OSOption(; kwargs...)
+    optdict = Dict()
+    for (argname, argval) in kwargs
+        if haskey(optdict, argname)
+            error("Duplicate setting of option $argname; was ",
+                optdict[argname], ", tried to set to $argval")
+        else
+            optdict[argname] = argval
+        end
+    end
+    return optdict
+end
+OSOption(optname; kwargs...) = OSOption(name = optname; kwargs...)
+OSOption(optname, optval; kwargs...) =
+    OSOption(name = optname, value = optval; kwargs...)
 
 type OsilMathProgModel <: AbstractMathProgModel
     solver::String
@@ -51,7 +84,7 @@ type OsilMathProgModel <: AbstractMathProgModel
     osol::String
     osrl::String
     printLevel::Int
-    options
+    options::Vector{Dict}
 
     numberOfVariables::Int
     numberOfConstraints::Int
@@ -83,12 +116,12 @@ type OsilMathProgModel <: AbstractMathProgModel
     quadraticCoefficients::XMLElement
     quadobjterms::Vector{XMLElement}
 
-    OsilMathProgModel(solver, osil, osol, osrl, printLevel; options...) =
+    OsilMathProgModel(solver, osil, osol, osrl, printLevel, options) =
         new(solver, osil, osol, osrl, printLevel, options)
 end
 
 MathProgBase.model(s::OsilSolver) = OsilMathProgModel(s.solver,
-    s.osil, s.osol, s.osrl, s.printLevel; s.options...)
+    s.osil, s.osol, s.osrl, s.printLevel, s.options)
 
 include("probmod.jl")
 
@@ -316,14 +349,20 @@ function write_osol_file(osol, x0, options)
         set_attribute(vari, "value", val)
     end
 
-    # TODO: implement these differently
     if length(options) > 0
         solverOptions = new_child(optimization, "solverOptions")
         set_attribute(solverOptions, "numberOfSolverOptions", length(options))
-        for i = 1:length(options)
+        for optdict in options
             solverOption = new_child(solverOptions, "solverOption")
-            set_attribute(solverOption, "name", options[i][1])
-            set_attribute(solverOption, "value", options[i][2])
+            for (argname, argval) in optdict
+                if symbol(argname) in (:name, :value, :solver,
+                        :category, :type, :description, :numberOfItems)
+                    # TODO: child <item>'s of <solverOption>'s?
+                    set_attribute(solverOption, string(argname), argval)
+                else
+                    error("Unknown option attribute $argname")
+                end
+            end
         end
     end
 

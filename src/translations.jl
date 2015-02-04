@@ -1,6 +1,3 @@
-#export jl2osnl_varargs, jl2osnl_binary, jl2osnl_unary, jl2osil_vartypes,
-#    addLinElem!, expr2osnl!
-
 jl2osnl_varargs = @compat Dict(
     :+     => "sum",
     :*     => "product")

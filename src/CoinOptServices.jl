@@ -74,7 +74,18 @@ function OSOption(; kwargs...)
     end
     return optdict
 end
-OSOption(optname; kwargs...) = OSOption(name = optname; kwargs...)
+function OSOption(optname, optval::String; kwargs...)
+    push!(kwargs, (:type, "string"))
+    OSOption(name = optname, value = optval; kwargs...)
+end
+function OSOption(optname, optval::Integer; kwargs...)
+    push!(kwargs, (:type, "integer"))
+    OSOption(name = optname, value = optval; kwargs...)
+end
+function OSOption(optname, optval::Number; kwargs...)
+    push!(kwargs, (:type, "numeric"))
+    OSOption(name = optname, value = optval; kwargs...)
+end
 OSOption(optname, optval; kwargs...) =
     OSOption(name = optname, value = optval; kwargs...)
 
@@ -490,6 +501,14 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
             "problem as a minimization for more reliable results.")
     end
     save_file(m.xdoc, m.osil)
+    if isempty(m.solver)
+        solvercmd = `` # use default
+    else
+        solvercmd = `-solver $(m.solver)`
+        for opt in filter(x -> !haskey(x, :solver), m.options)
+            opt[:solver] = m.solver
+        end
+    end
     if isdefined(m, :x0)
         xl, x0, xu = m.xl, m.x0, m.xu
         have_warned = false
@@ -506,11 +525,6 @@ function MathProgBase.optimize!(m::OsilMathProgModel)
     end
     # clear existing content from m.osrl, if any
     close(open(m.osrl, "w"))
-    if isempty(m.solver)
-        solvercmd = `` # use default
-    else
-        solvercmd = `-solver $(m.solver)`
-    end
     run(`$OSSolverService -osil $(m.osil) -osol $(m.osol) -osrl $(m.osrl)
         $solvercmd -printLevel $(m.printLevel)`)
     if filesize(m.osrl) == 0

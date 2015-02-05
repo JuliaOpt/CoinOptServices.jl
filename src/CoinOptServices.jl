@@ -65,7 +65,7 @@ OsilCouenneSolver(;
 function OSOption(; kwargs...)
     optdict = Dict()
     for (argname, argval) in kwargs
-        if haskey(optdict, argname)
+        if haskey(optdict, argname) && argval != optdict[argname]
             error("Duplicate setting of option $argname; was ",
                 optdict[argname], ", tried to set to $argval")
         else
@@ -371,7 +371,7 @@ function write_osol_file(osol, x0, options)
                     # TODO: child <item>'s of <solverOption>'s?
                     set_attribute(solverOption, string(argname), argval)
                 else
-                    error("Unknown option attribute $argname")
+                    error("Unknown solverOption attribute $argname")
                 end
             end
         end

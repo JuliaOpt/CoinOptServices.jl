@@ -37,28 +37,25 @@ end
 # ENUM_OUTPUT_LEVEL_always (0) *before* command-line flags like -printLevel
 # have been read, and OSPrint shows output whenever the output level for a
 # call is <= the printLevel
-OsilSolver(;
+OsilSolver(options::Dict...;
         solver = "",
         osil = joinpath(osildir, "problem.osil"),
         osol = joinpath(osildir, "options.osol"),
         osrl = joinpath(osildir, "results.osrl"),
-        printLevel = 1,
-        options = Dict[]) =
-    OsilSolver(solver, osil, osol, osrl, printLevel, options)
-OsilBonminSolver(;
+        printLevel = 1) =
+    OsilSolver(solver, osil, osol, osrl, printLevel, collect(options))
+OsilBonminSolver(options::Dict...;
         osil = joinpath(osildir, "problem.osil"),
         osol = joinpath(osildir, "options.osol"),
         osrl = joinpath(osildir, "results.osrl"),
-        printLevel = 1,
-        options = Dict[]) =
-    OsilSolver("bonmin", osil, osol, osrl, printLevel, options)
-OsilCouenneSolver(;
+        printLevel = 1) =
+    OsilSolver("bonmin", osil, osol, osrl, printLevel, collect(options))
+OsilCouenneSolver(options::Dict...;
         osil = joinpath(osildir, "problem.osil"),
         osol = joinpath(osildir, "options.osol"),
         osrl = joinpath(osildir, "results.osrl"),
-        printLevel = 1,
-        options = Dict[]) =
-    OsilSolver("couenne", osil, osol, osrl, printLevel, options)
+        printLevel = 1) =
+    OsilSolver("couenne", osil, osol, osrl, printLevel, collect(options))
 
 # translate keyword arguments into an option Dict
 # (can't make this a type since it would need a field named type)
@@ -76,15 +73,15 @@ function OSOption(; kwargs...)
 end
 function OSOption(optname, optval::String; kwargs...)
     push!(kwargs, (:type, "string"))
-    OSOption(name = optname, value = optval; kwargs...)
+    return OSOption(name = optname, value = optval; kwargs...)
 end
 function OSOption(optname, optval::Integer; kwargs...)
     push!(kwargs, (:type, "integer"))
-    OSOption(name = optname, value = optval; kwargs...)
+    return OSOption(name = optname, value = optval; kwargs...)
 end
 function OSOption(optname, optval::Number; kwargs...)
     push!(kwargs, (:type, "numeric"))
-    OSOption(name = optname, value = optval; kwargs...)
+    return OSOption(name = optname, value = optval; kwargs...)
 end
 OSOption(optname, optval; kwargs...) =
     OSOption(name = optname, value = optval; kwargs...)

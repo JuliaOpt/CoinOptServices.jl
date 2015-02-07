@@ -396,23 +396,29 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
 
     status = find_element(solution, "status")
     statustype = attribute(status, "type")
-    statusdescription = attribute(status, "description")
-    if haskey(osrl2jl_status, statustype)
-        m.status = osrl2jl_status[statustype]
+    if statustype == nothing
+        warn("Solution status in $(m.osrl) has no type attribute. Status ",
+            "content is: ", content(status))
+        m.status = :Error
     else
-        error("Unknown solution status type $statustype")
-    end
-    if statusdescription != nothing
-        # OSBonminSolver and OSCouenneSolver set some funny exit statuses
-        if statustype == "other" && startswith(statusdescription, "LIMIT")
-            m.status = :UserLimit
-        elseif statustype == "error" && (statusdescription ==
-                "The problem is infeasible")
-            m.status = :Infeasible
-        elseif statustype == "error" && (statusdescription ==
-                "The problem is unbounded" ||
-                startswith(statusdescription, "CONTINUOUS_UNBOUNDED"))
-            m.status = :Unbounded
+        if haskey(osrl2jl_status, statustype)
+            m.status = osrl2jl_status[statustype]
+        else
+            error("Unknown solution status type $statustype")
+        end
+        statusdescription = attribute(status, "description")
+        if statusdescription != nothing
+            # OSBonminSolver and OSCouenneSolver set some funny exit statuses
+            if statustype == "other" && startswith(statusdescription, "LIMIT")
+                m.status = :UserLimit
+            elseif statustype == "error" && (statusdescription ==
+                    "The problem is infeasible")
+                m.status = :Infeasible
+            elseif statustype == "error" && (statusdescription ==
+                    "The problem is unbounded" ||
+                    startswith(statusdescription, "CONTINUOUS_UNBOUNDED"))
+                m.status = :Unbounded
+            end
         end
     end
 

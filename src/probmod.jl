@@ -282,8 +282,12 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
     end
     numdupes = 0
     if issorted(varidx, lt = (<=)) # this means strictly increasing
-        for i = 1:length(varidx)
-            addnonzero!(colIdx, values, varidx[i] - 1, coef[i]) # OSiL is 0-based
+        for (i, curval) in enumerate(coef)
+            if curval != 0.0 || i == length(coef) # always add at least one "nonzero"
+                addnonzero!(colIdx, values, varidx[i] - 1, curval) # OSiL is 0-based
+            else
+                numdupes += 1
+            end
         end
     elseif length(varidx) > 0
         # we have the whole vector of indices here,
@@ -294,7 +298,11 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
         for i = 2:length(p)
             nextidx = varidx[p[i]]
             if nextidx > curidx
-                addnonzero!(colIdx, values, curidx - 1, curval) # OSiL is 0-based
+                if curval == 0.0
+                    numdupes += 1
+                else
+                    addnonzero!(colIdx, values, curidx - 1, curval) # OSiL is 0-based
+                end
                 curidx = nextidx
                 curval = coef[p[i]]
             else
@@ -302,6 +310,7 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
                 curval += coef[p[i]]
             end
         end
+        # always add at least one "nonzero," even if curval == 0.0
         addnonzero!(colIdx, values, curidx - 1, curval) # OSiL is 0-based
     end
     if linConstrCoefs != nothing

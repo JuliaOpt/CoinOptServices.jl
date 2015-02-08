@@ -1,0 +1,13 @@
+diff --git a/OS/src/OSCommonInterfaces/OSInstance.cpp b/OS/src/OSCommonInterfaces/OSInstance.cpp
+index dd4ae61..96bffe0 100644
+--- a/OS/src/OSCommonInterfaces/OSInstance.cpp
++++ b/OS/src/OSCommonInterfaces/OSInstance.cpp
+@@ -4876,7 +4876,7 @@ bool OSInstance::getFirstOrderResults(double *x, double *objLambda, double *conM
+          * columns we get the Jacobian by column
+          */
+ 
+-        if(m_iNumberOfNonlinearVariables >= m_mapExpressionTreesMod.size() )
++        if(1)
+         {
+             // calculate the gradient by doing a reverse sweep over each row
+             // loop over the constraints that have a nonlinear term and get their gradients

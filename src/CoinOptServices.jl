@@ -397,6 +397,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     status = find_element(solution, "status")
     statustype = attribute(status, "type")
     if statustype == nothing
+        # OSIpoptSolver needs some fixes for iteration limit exit status
         warn("Solution status in $(m.osrl) has no type attribute. Status ",
             "content is: ", content(status))
         m.status = :Error

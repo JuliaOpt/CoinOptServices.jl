@@ -1,5 +1,5 @@
 diff --git a/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp b/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp
-index f4d35bc..50536d8 100644
+index 757e145..cae54a6 100644
 --- a/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp
 +++ b/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp
 @@ -626,8 +626,8 @@ void IpoptProblem::finalize_solution(SolverReturn status,
@@ -13,10 +13,10 @@ index f4d35bc..50536d8 100644
      int solIdx = 0;
      int numberOfOtherVariableResults;
 diff --git a/OS/src/OSSolverService.cpp b/OS/src/OSSolverService.cpp
-index 1d62044..1fabd1c 100644
+index 3dec7fa..9a17d83 100644
 --- a/OS/src/OSSolverService.cpp
 +++ b/OS/src/OSSolverService.cpp
-@@ -848,7 +848,7 @@ void solve(OSCommandLine *oscommandline)
+@@ -864,7 +864,7 @@ void solve(OSCommandLine *oscommandline)
                      std::system(ch);
                  }
                  else
@@ -25,11 +25,11 @@ index 1d62044..1fabd1c 100644
                          "Results written to file " + oscommandline->osrlFile);
              }
              else
-diff --git a/OS/src/OSUtils/OSOutput.h b/OS/src/OSUtils/OSOutput.h
-index e0a38ab..ad63d5f 100644
---- a/OS/src/OSUtils/OSOutput.h
-+++ b/OS/src/OSUtils/OSOutput.h
-@@ -51,7 +51,7 @@ enum ENUM_OUTPUT_LEVEL
+diff --git a/OS/src/OSUtils/OSParameters.h b/OS/src/OSUtils/OSParameters.h
+index d8af53f..6a469a4 100644
+--- a/OS/src/OSUtils/OSParameters.h
++++ b/OS/src/OSUtils/OSParameters.h
+@@ -115,7 +115,7 @@ enum ENUM_OUTPUT_LEVEL
       ENUM_OUTPUT_LEVEL_NUMBER_OF_LEVELS    // insert other values above this one...
  };
  

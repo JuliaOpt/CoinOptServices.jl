@@ -298,10 +298,10 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
         for i = 2:length(p)
             nextidx = varidx[p[i]]
             if nextidx > curidx
-                if curval == 0.0
-                    numdupes += 1
-                else
+                if curval != 0.0
                     addnonzero!(colIdx, values, curidx - 1, curval) # OSiL is 0-based
+                else
+                    numdupes += 1
                 end
                 curidx = nextidx
                 curval = coef[p[i]]

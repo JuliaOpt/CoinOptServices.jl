@@ -21,3 +21,6 @@ m = Model(solver = OsilSolver())
 #MathProgBase.constr_expr(d, 1)
 
 solve(m)
+
+
+include(Pkg.dir("JuMP","test","runtests.jl"))

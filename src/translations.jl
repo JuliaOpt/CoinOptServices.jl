@@ -2,6 +2,9 @@ jl2osnl_varargs = @compat Dict(
     :+     => "sum",
     :*     => "product")
 
+jl2osnl_ternary = copy(jl2osnl_varargs)
+jl2osnl_ternary[:ifelse] = "if"
+
 jl2osnl_binary = @compat Dict(
     :+     => "plus",
     :.+    => "plus",
@@ -45,8 +48,17 @@ for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
     jl2osnl_unary[op] = string(op)
 end
 
-# ternary :ifelse => "if" ?
-# comparison ops
+jl2osnl_comparison = @compat Dict(
+    :<     => "lt",
+    :<=    => "leq",
+    :≤     => "leq",
+    :>     => "gt",
+    :>=    => "geq",
+    :≥     => "geq",
+    :(==)  => "eq",
+    :!=    => "neq",
+    :≠     => "neq")
+# and, or, xor, not?
 
 jl2osil_vartypes = @compat Dict(:Cont => "C", :Int => "I", :Bin => "B",
     :SemiCont => "D", :SemiInt => "J", :Fixed => "C")
@@ -127,12 +139,7 @@ function expr2osnl!(parent, ex::Expr)
             error("Do not know how to handle :call expression $ex ",
                 "with fewer than 2 args")
         elseif numargs == 2
-            if haskey(jl2osnl_unary, args[1])
-                child = new_child(parent, jl2osnl_unary[args[1]])
-                expr2osnl!(child, args[2])
-            else
-                error("Do not know how to convert unary $(args[1]) to osnl")
-            end
+            child = args2osnl!(parent, args, jl2osnl_unary, "unary")
         elseif numargs == 3
             if haskey(jl2osnl_binary, args[1])
                 # handle some special cases, see below
@@ -140,18 +147,25 @@ function expr2osnl!(parent, ex::Expr)
             else
                 error("Do not know how to convert binary $(args[1]) to osnl")
             end
+        elseif numargs == 4
+            child = args2osnl!(parent, args, jl2osnl_ternary, "ternary")
         else
-            if haskey(jl2osnl_varargs, args[1])
-                child = new_child(parent, jl2osnl_varargs[args[1]])
-                for i = 2:numargs
-                    expr2osnl!(child, args[i])
-                end
-            else
-                error("Do not know how to convert varargs $(args[1]) to osnl")
-            end
+            child = args2osnl!(parent, args, jl2osnl_varargs, "varargs")
         end
     elseif head == :ref
         child = var2osnl!(parent, args)
+    elseif head == :comparison
+        if numargs == 3
+            if haskey(jl2osnl_comparison, args[2])
+                child = new_child(parent, jl2osnl_comparison[args[2]])
+                expr2osnl!(child, args[1])
+                expr2osnl!(child, args[3])
+            else
+                error("Do not know how to convert comparison $(args[2]) to osnl")
+            end
+        else
+            error("Do not know how to convert comparisons with $numargs arguments to osnl")
+        end
     else
         error("Do not know how to handle expression $ex with head $head")
     end
@@ -161,6 +175,18 @@ function expr2osnl!(parent, ex)
     # for anything not an Expr, assume it's a constant number
     child = new_child(parent, "number")
     set_attribute(child, "value", ex)
+    return child
+end
+
+function args2osnl!(parent, args, table, label)
+    if haskey(table, args[1])
+        child = new_child(parent, table[args[1]])
+        for i = 2:length(args)
+            expr2osnl!(child, args[i])
+        end
+    else
+        error("Do not know how to convert $label $(args[1]) to osnl")
+    end
     return child
 end
 

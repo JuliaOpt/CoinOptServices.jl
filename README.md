@@ -97,9 +97,14 @@ results file. The default location for writing these files is under
 ``Pkg.dir("CoinOptServices", ".osil")``. The ``printLevel`` keyword argument
 can be set to an integer from 0 to 5, and corresponds to the ``-printLevel``
 command line flag for ``OSSolverService``. This only controls the print
-level of the OS driver, not the solvers themselves. Solver-specific options
-must be provided as additional keyword arguments, which will be saved in
-the OSoL options file.
+level of the OS driver, not the solvers themselves.
+
+All additional inputs to ``OsilSolver`` are treated as solver-specific
+options. These options should be input as Julia ``Dict`` objects, with
+keys corresponding to OSoL ``<solverOption>`` properties ``"name"``,
+``"value"``, ``"solver"``, ``"category"``, ``"type"``, or ``"description"``.
+A convenience function ``OSOption(optname, optval, kwargs...)`` is provided
+to automatically set ``"type"`` based on the Julia type of ``optval``.
 
 CoinOptServices should also work with any other MathProgBase-compliant
 linear or nonlinear optimization modeling tools, though this has not been

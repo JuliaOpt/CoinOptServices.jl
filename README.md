@@ -57,7 +57,7 @@ successfully installed in order to reuse the binaries for those solvers.
 You will need to have a Fortran compiler such as ``gfortran`` installed
 in order to compile Ipopt. On OSX, install [Homebrew](http://brew.sh/)
 and run ``brew install gcc``. On Linux, use your system package manager
-to install ``gfortran``.
+to install ``gfortran``. You will also need to have ``pkg-config`` installed.
 
 This package builds the remaining COIN-OR libraries OS, CppAD, Bonmin,
 Couenne, and a few other solvers (DyLP, Vol, SYMPHONY, Bcp)
@@ -98,6 +98,11 @@ results file. The default location for writing these files is under
 can be set to an integer from 0 to 5, and corresponds to the ``-printLevel``
 command line flag for ``OSSolverService``. This only controls the print
 level of the OS driver, not the solvers themselves.
+
+Note that if you want to solve multiple problems simultaneously, you
+need to set the ``osil``, ``osol``, and ``osrl`` keyword arguments to
+independent file names for each problem. See
+[issue #1](https://github.com/tkelman/CoinOptServices.jl/issues/1) for details.
 
 All additional inputs to ``OsilSolver`` are treated as solver-specific
 options. These options should be input as Julia ``Dict`` objects, with

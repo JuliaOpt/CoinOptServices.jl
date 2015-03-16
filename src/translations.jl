@@ -201,7 +201,7 @@ function var2osnl!(parent, args)
 end
 
 function binary2osnl_generic!(parent, op::Symbol, ex1, ex2)
-    # convert generic binary operation from Expr(:call, op, ex1, ex1)
+    # convert generic binary operation from Expr(:call, op, ex1, ex2)
     # to OSnL, adding any new child xml elements to parent
     child = new_child(parent, jl2osnl_binary[op])
     expr2osnl!(child, ex1)

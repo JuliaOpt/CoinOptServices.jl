@@ -3,7 +3,7 @@ using BinDeps
 @BinDeps.setup
 
 libOS = library_dependency("libOS", aliases=["libOS-6"])
-version = "2.9.1"
+version = "2.9.2"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz"),
     [libOS], os = :Unix)
@@ -19,7 +19,7 @@ end
 
 @osx_only begin
     using Homebrew
-    provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
+    #provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
     cbclibdir = joinpath(Homebrew.prefix(), "lib")
     ipoptlibdir = cbclibdir
 end

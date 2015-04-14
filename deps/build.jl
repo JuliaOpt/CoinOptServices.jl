@@ -19,7 +19,7 @@ end
 
 @osx_only begin
     using Homebrew
-    #provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
+    provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
     cbclibdir = joinpath(Homebrew.prefix(), "lib")
     ipoptlibdir = cbclibdir
 end

@@ -245,12 +245,12 @@ function xml2vec(el::XMLElement, n::Integer, defaultval=NaN)
     x = fill(defaultval, n)
     indicator = fill(false, n)
     for child in child_elements(el)
-        idx = int(attribute(child, "idx")) + 1 # OSiL is 0-based
+        idx = @compat parse(Int, attribute(child, "idx")) + 1 # OSiL is 0-based
         if indicator[idx] # combine duplicates
-            x[idx] += float64(content(child))
+            x[idx] += @compat parse(Float64, content(child))
         else
             indicator[idx] = true
-            x[idx] = float64(content(child))
+            x[idx] = @compat parse(Float64, content(child))
         end
     end
     return x

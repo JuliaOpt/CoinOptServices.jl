@@ -25,11 +25,12 @@ and [Ipopt](https://github.com/JuliaOpt/Ipopt.jl) already have Julia packages
 that interface directly with their respective in-memory C API's. Particularly
 for Clp.jl and Cbc.jl, the existing packages should be faster than the
 CoinOptServices.jl approach of going through an OSiL file on disk.
-Ipopt.jl is probably faster as well, however using ``OSSolverService`` will
-perform automatic differentiation in C++ using [CppAD](https://projects.coin-or.org/CppAD),
-which may have different performance characteristics than the pure-Julia
+Initial comparisons show that Ipopt.jl is also substantially faster than
+CoinOptServices.jl. For nonlinear problems ``OSSolverService`` performs
+automatic differentiation in C++ using [CppAD](https://projects.coin-or.org/CppAD),
+which has different performance characteristics than the pure-Julia
 [ReverseDiffSparse.jl](https://github.com/mlubin/ReverseDiffSparse.jl) package
-used for nonlinear programming in JuMP. TODO: benchmarking!
+used for nonlinear programming in JuMP. TODO: determine why CppAD is slower than expected
 
 Writing of ``.osil`` files is implemented using the
 [LightXML.jl](https://github.com/JuliaLang/LightXML.jl) Julia bindings to
@@ -116,5 +117,3 @@ linear or nonlinear optimization modeling tools, though this has not been
 tested. There are features in OSiL for representing conic optimization
 problems, but these are not currently exposed or connected to the
 MathProgBase conic interface.
-
-

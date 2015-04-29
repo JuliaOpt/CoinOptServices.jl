@@ -68,8 +68,8 @@ function initialize_quadcoefs!(m::OsilMathProgModel)
     # return numberOfQuadraticTerms if quadraticCoefficients has been
     # created, otherwise create quadraticCoefficients and return 0
     if isdefined(m, :quadraticCoefficients)
-        return int(attribute(m.quadraticCoefficients,
-            "numberOfQuadraticTerms"))
+        return @compat(parse(Int, attribute(m.quadraticCoefficients,
+            "numberOfQuadraticTerms")))
     else
         m.quadraticCoefficients = new_child(m.instanceData,
             "quadraticCoefficients")
@@ -244,8 +244,8 @@ function MathProgBase.addvar!(m::OsilMathProgModel, lb, ub, objcoef)
     push!(m.xu, ub)
     newvar!(m.variables, lb, ub)
     if objcoef != 0.0
-        set_attribute(m.obj, "numberOfObjCoef",
-            int(attribute(m.obj, "numberOfObjCoef")) + 1)
+        set_attribute(m.obj, "numberOfObjCoef", @compat(parse(Int,
+            attribute(m.obj, "numberOfObjCoef"))) + 1)
         # use old numberOfVariables since OSiL is 0-based
         newobjcoef!(m.obj, m.numberOfVariables, objcoef)
     end
@@ -277,7 +277,8 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
             rowstarts = find_element(linConstrCoefs, "start")
             colIdx = find_element(linConstrCoefs, "colIdx")
             values = find_element(linConstrCoefs, "value")
-            numberOfValues = int(attribute(linConstrCoefs, "numberOfValues"))
+            numberOfValues = @compat(parse(Int,
+                attribute(linConstrCoefs, "numberOfValues")))
         end
     end
     numdupes = 0

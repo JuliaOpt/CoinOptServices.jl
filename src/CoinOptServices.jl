@@ -441,8 +441,8 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
             if name(child) == "other"
                 counter += 1
                 if attribute(child, "name") == "reduced_costs"
-                    @assertequal(int(attribute(child, "numberOfVar")),
-                        m.numberOfVariables)
+                    @assertequal(@compat(parse(Int, attribute(child,
+                        "numberOfVar"))), m.numberOfVariables)
                     if reduced_costs_found
                         warn("Overwriting existing reduced costs")
                     end
@@ -455,7 +455,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         if numberOfOther == nothing
             @assertequal(counter, 0)
         else
-            @assertequal(counter, int(numberOfOther))
+            @assertequal(counter, @compat(parse(Int, numberOfOther)))
         end
     end
 
@@ -480,8 +480,8 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         m.constrduals = fill(NaN, m.numberOfConstraints)
     else
         dualValues = find_element(constraints, "dualValues")
-        @assertequal(int(attribute(dualValues, "numberOfCon")),
-            m.numberOfConstraints)
+        @assertequal(@compat(parse(Int, attribute(dualValues,
+            "numberOfCon"))), m.numberOfConstraints)
         if length(m.quadconidx) == 0
             m.constrduals = xml2vec(dualValues, m.numberOfConstraints)
         else

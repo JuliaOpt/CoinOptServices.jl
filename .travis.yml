@@ -10,13 +10,18 @@ notifications:
 sudo: false
 cache:
   directories:
-  - $HOME/.julia/*/CoinOptServices/deps
+  - $HOME/usr
 addons:
   apt_packages:
   - gfortran
 env:
   - MAKEFLAGS="-j3"
+    LD_LIBRARY_PATH=$HOME/usr/lib
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 #  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("CoinOptServices"); Pkg.test("CoinOptServices")'
+before_cache:
+  - cp -R $HOME/.julia/*/Cbc/deps/usr $HOME
+  - cp -R $HOME/.julia/*/Ipopt/deps/usr $HOME
+  - cp -R $HOME/.julia/*/CoinOptServices/deps/usr $HOME

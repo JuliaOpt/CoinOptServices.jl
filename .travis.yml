@@ -7,12 +7,15 @@ julia:
   - nightly
 notifications:
   email: false
+sudo: false
+cache:
+  directories:
+  - $HOME/.julia/*/CoinOptServices/deps
+addons:
+  apt_packages:
+  - gfortran
 env:
   - MAKEFLAGS="-j3"
-before_install:
-  - if [ `uname` = "Linux" ]; then
-      sudo apt-get install gfortran -y;
-    fi
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi

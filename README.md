@@ -45,13 +45,23 @@ You can install the package by running:
 
     julia> Pkg.add("CoinOptServices")
 
-On Linux or OSX, this will compile the COIN OS library and its dependencies
-if they are not found in ``DL_LOAD_PATH``. Note that OS is a large C++
-library with many dependencies, and it is not currently packaged for any
-released Linux distributions. Submit a pull request to support using the
-library from a system package manager if this changes. It is recommended
-to set ``ENV["MAKEFLAGS"] = "-j4"`` before installing the package so
-compilation does not take as long.
+On OS X, this will automatically download precompiled binaries
+via [Homebrew.jl](https://github.com/JuliaLang/Homebrew.jl).
+
+On Windows, this will automatically download precompiled binaries
+via [WinRPM.jl](https://github.com/JuliaLang/WinRPM.jl).
+Currently these are packaged in [@tkelman](https://github.com/tkelman)'s
+[personal project](https://build.opensuse.org/project/show/home:kelman:mingw-coinor)
+on the openSUSE build service, but these will be submitted to the official
+default repository eventually.
+
+On Linux, this will compile the COIN OS library and its dependencies from
+source if they are not found in ``DL_LOAD_PATH``. Note that OS is a large
+C++ library with many dependencies, and it is not currently packaged for
+any released Linux distributions. Submit a pull request to support using
+the library from a system package manager if this changes. It is
+recommended to set ``ENV["MAKEFLAGS"] = "-j4"`` before installing the
+package so compilation does not take as long.
 
 The current BinDeps setup assumes Ipopt.jl and Cbc.jl have already been
 successfully installed in order to reuse the binaries for those solvers.
@@ -62,13 +72,6 @@ install ``gfortran``. You will also need to have ``pkg-config`` installed.
 This package builds the remaining COIN-OR libraries OS, CppAD, Bonmin,
 Couenne, and a few other solvers (DyLP, Vol, SYMPHONY, Bcp)
 that do not yet have Julia bindings.
-
-On OS X, precompiled binaries are provided via [Homebrew.jl](https://github.com/JuliaLang/Homebrew.jl).
-
-On Windows, binaries are downloaded via [WinRPM.jl](https://github.com/JuliaLang/WinRPM.jl).
-Currently these are packaged in [@tkelman](https://github.com/tkelman)'s [personal project](https://build.opensuse.org/project/show/home:kelman:mingw-coinor)
-on the openSUSE build service, but these will be submitted to the official
-default repository eventually.
 
 ## Usage
 

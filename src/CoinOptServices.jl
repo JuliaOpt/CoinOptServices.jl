@@ -20,6 +20,8 @@ depsjl = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 isfile(depsjl) ? include(depsjl) : error("CoinOptServices not properly ",
     "installed. Please run\nPkg.build(\"CoinOptServices\")")
 OSSolverService = joinpath(dirname(libOS), "..", "bin", "OSSolverService")
+bonmin = joinpath(dirname(libOS), "..", "bin", "bonmin")
+couenne = joinpath(dirname(libOS), "..", "bin", "couenne")
 osildir = Pkg.dir("CoinOptServices", ".osil")
 
 export OsilSolver, OsilBonminSolver, OsilCouenneSolver, OSOption

@@ -1,6 +1,6 @@
 # CoinOptServices.jl
 
-[![Build Status](https://travis-ci.org/tkelman/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/tkelman/CoinOptServices.jl)
+[![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/tkelman/CoinOptServices.jl)
 
 This [Julia](https://github.com/JuliaLang/julia) package is an interface
 between [MathProgBase.jl](https://github.com/JuliaOpt/MathProgBase.jl) and
@@ -56,29 +56,19 @@ compilation does not take as long.
 The current BinDeps setup assumes Ipopt.jl and Cbc.jl have already been
 successfully installed in order to reuse the binaries for those solvers.
 You will need to have a Fortran compiler such as ``gfortran`` installed
-in order to compile Ipopt. On OSX, install [Homebrew](http://brew.sh/)
-and run ``brew install gcc``. On Linux, use your system package manager
-to install ``gfortran``. You will also need to have ``pkg-config`` installed.
+in order to compile Ipopt. On Linux, use your system package manager to
+install ``gfortran``. You will also need to have ``pkg-config`` installed.
 
 This package builds the remaining COIN-OR libraries OS, CppAD, Bonmin,
 Couenne, and a few other solvers (DyLP, Vol, SYMPHONY, Bcp)
 that do not yet have Julia bindings.
 
-If you are using the generic Linux binaries of Julia, note that there is an
-[issue with libgfortran](https://github.com/JuliaLang/julia/pull/8442#issuecomment-69449027).
-You may need to delete the bundled ``lib/julia/libgfortran.so.3`` for Ipopt.jl
-and this package to work correctly.
+On OS X, precompiled binaries are provided via [Homebrew.jl](https://github.com/JuliaLang/Homebrew.jl).
 
 On Windows, binaries are downloaded via [WinRPM.jl](https://github.com/JuliaLang/WinRPM.jl).
-Currently these are packaged in [my personal project](https://build.opensuse.org/project/show/home:kelman:mingw-coinor)
-on the openSUSE build service, but I plan on submitting them to the official
-default repository. I will probably wait for the next round of upstream
-COIN-OR releases before doing this.
-
-Precompiled binaries for OSX will eventually be provided via
-[Homebrew.jl](https://github.com/JuliaLang/Homebrew.jl), check
-[here](https://github.com/staticfloat/homebrew-juliadeps/pull/36) for
-the latest progress.
+Currently these are packaged in [@tkelman](https://github.com/tkelman)'s [personal project](https://build.opensuse.org/project/show/home:kelman:mingw-coinor)
+on the openSUSE build service, but these will be submitted to the official
+default repository eventually.
 
 ## Usage
 
@@ -103,7 +93,7 @@ level of the OS driver, not the solvers themselves.
 Note that if you want to solve multiple problems simultaneously, you
 need to set the ``osil``, ``osol``, and ``osrl`` keyword arguments to
 independent file names for each problem. See
-[issue #1](https://github.com/tkelman/CoinOptServices.jl/issues/1) for details.
+[issue #1](https://github.com/JuliaOpt/CoinOptServices.jl/issues/1) for details.
 
 All additional inputs to ``OsilSolver`` are treated as solver-specific
 options. These options should be input as Julia ``Dict`` objects, with

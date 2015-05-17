@@ -1,6 +1,6 @@
 # CoinOptServices.jl
 
-[![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/tkelman/CoinOptServices.jl)
+[![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/CoinOptServices.jl)
 
 This [Julia](https://github.com/JuliaLang/julia) package is an interface
 between [MathProgBase.jl](https://github.com/JuliaOpt/MathProgBase.jl) and

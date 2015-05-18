@@ -1,6 +1,8 @@
 # CoinOptServices.jl
 
-[![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/CoinOptServices.jl)
+Linux, OSX: [![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/CoinOptServices.jl)
+
+Windows: [![Build Status](https://ci.appveyor.com/api/projects/status/github/JuliaOpt/CoinOptServices.jl?branch=master&svg=true)](https://ci.appveyor.com/project/tkelman/coinoptservices-jl/branch/master)
 
 This [Julia](https://github.com/JuliaLang/julia) package is an interface
 between [MathProgBase.jl](https://github.com/JuliaOpt/MathProgBase.jl) and

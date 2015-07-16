@@ -7,7 +7,7 @@ for mod in (Model(solver=IpoptSolver(print_timing_statistics="yes")),
     Model(solver=IpoptNLSolver()),
     Model(solver=OsilSolver(OSOption("print_timing_statistics", "yes"),
         OSOption("print_level", 5),
-        OSOption("derivative_test", "second-order"))))
+        OSOption("max_iter", 27))))
 
 # Constants
 # Note that all parameters in the model have been normalized

@@ -6,7 +6,8 @@ function rocket()
 for mod in (Model(solver=IpoptSolver(print_timing_statistics="yes")),
     Model(solver=IpoptNLSolver()),
     Model(solver=OsilSolver(OSOption("print_timing_statistics", "yes"),
-        OSOption("print_level", 5))))
+        OSOption("print_level", 5),
+        OSOption("hessian_approximation", "limited-memory"))))
 
 # Constants
 # Note that all parameters in the model have been normalized

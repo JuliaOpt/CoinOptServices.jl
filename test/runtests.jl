@@ -23,4 +23,5 @@ m = Model(solver = OsilSolver())
 solve(m)
 
 
-include(Pkg.dir("JuMP","test","runtests.jl"))
+include("rocket.jl")
+rocket()

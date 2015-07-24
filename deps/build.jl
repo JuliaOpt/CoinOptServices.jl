@@ -25,9 +25,13 @@ end
 end
 
 @linux_only begin
-    # should probably be using deps/deps.jl for these
-    cbclibdir = Pkg.dir("Cbc", "deps", "usr", "lib")
-    ipoptlibdir = Pkg.dir("Ipopt", "deps", "usr", "lib")
+    for dep in ("Cbc", "Ipopt")
+        depsjl = Pkg.dir(dep, "deps", "deps.jl")
+        isfile(depsjl) ? include(depsjl) : error("$dep not properly ",
+            "installed. Please run\nPkg.build(\"$dep\")")
+    end
+    cbclibdir = dirname(libcbcsolver)
+    ipoptlibdir = dirname(libipopt)
 end
 
 prefix = joinpath(BinDeps.depsdir(libOS), "usr")

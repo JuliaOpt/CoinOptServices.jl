@@ -123,8 +123,16 @@ end
 
 function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol})
     i = 0
+    first_unset = 0
     for vari in child_elements(m.variables)
         i += 1
+        if i > length(vartypes)
+            set_attribute(vari, "type", "C")
+            if first_unset == 0
+                first_unset = i
+            end
+            continue
+        end
         if haskey(jl2osil_vartypes, vartypes[i])
             set_attribute(vari, "type", jl2osil_vartypes[vartypes[i]])
             if vartypes[i] == :Bin
@@ -145,7 +153,12 @@ function MathProgBase.setvartype!(m::OsilMathProgModel, vartypes::Vector{Symbol}
             error("Unrecognized vartype $(vartypes[i])")
         end
     end
-    @assertequal(i, length(vartypes))
+    if first_unset != 0
+        warn("Variable type not provided for variables ",
+            "$(first_unset : i), assuming Continuous")
+    else
+        @assertequal(i, length(vartypes))
+    end
     m.vartypes = vartypes
 end
 

@@ -387,9 +387,13 @@ function MathProgBase.addquadconstr!(m::OsilMathProgModel, linearidx,
     else
         error("Unknown quadratic constraint sense $sense")
     end
-    # only if linear constraints exist or are being added here,
-    # otherwise just do newcon!
-    MathProgBase.addconstr!(m, linearidx, linearval, lb, ub)
+    # always add a dummy linear part for every quadratic
+    # constraint to make the bookkeeping simpler
+    if isempty(linearidx) && isempty(linearval)
+        MathProgBase.addconstr!(m, [1], [0.0], lb, ub)
+    else
+        MathProgBase.addconstr!(m, linearidx, linearval, lb, ub)
+    end
     m.numLinConstr -= 1 # since this constraint is quadratic, not linear
     pop!(m.cl) # MathProgBase treats quadratic constraints separately
     pop!(m.cu)

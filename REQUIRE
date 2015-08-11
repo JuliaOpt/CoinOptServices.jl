@@ -3,7 +3,7 @@ Compat
 Clp
 Cbc
 Ipopt
-LightXML 0.1.10
+LightXML 0.2
 BinDeps
 MathProgBase
 @osx Homebrew

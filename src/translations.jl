@@ -256,12 +256,4 @@ function xml2vec(el::XMLElement, n::Integer, defaultval=NaN)
     return x
 end
 
-# TODO: move this to LightXML
-function parse_file(filename::String, encoding, options::Integer)
-    p = ccall(dlsym(LightXML.libxml2, "xmlReadFile"), Ptr{Void},
-        (Ptr{Cchar}, Ptr{Cchar}, Cint), filename, encoding, options)
-    p != C_NULL || throw(LightXML.XMLParseError("Failure in parsing an XML file."))
-    XMLDocument(p)
-end
-
 # TODO: writeproblem and loadproblem for linear and nonlinear <=> osil files

@@ -1,5 +1,9 @@
 # CoinOptServices.jl
 
+Release:
+[![CoinOptServices](http://pkg.julialang.org/badges/CoinOptServices_0.3.svg)](http://pkg.julialang.org/?pkg=CoinOptServices&ver=0.3)
+[![CoinOptServices](http://pkg.julialang.org/badges/CoinOptServices_0.4.svg)](http://pkg.julialang.org/?pkg=CoinOptServices&ver=0.4)
+
 Linux, OSX: [![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.svg?branch=master)](https://travis-ci.org/JuliaOpt/CoinOptServices.jl)
 
 Windows: [![Build Status](https://ci.appveyor.com/api/projects/status/github/JuliaOpt/CoinOptServices.jl?branch=master&svg=true)](https://ci.appveyor.com/project/tkelman/coinoptservices-jl/branch/master)

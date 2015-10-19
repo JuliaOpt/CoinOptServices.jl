@@ -174,7 +174,7 @@ end
 function expr2osnl!(parent, ex)
     # for anything not an Expr, assume it's a constant number
     child = new_child(parent, "number")
-    set_attribute(child, "value", ex)
+    set_attribute(child, "value", @compat Float64(ex))
     return child
 end
 

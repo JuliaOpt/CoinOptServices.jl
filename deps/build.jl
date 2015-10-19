@@ -1,9 +1,9 @@
-using BinDeps
+using BinDeps, Compat
 
 @BinDeps.setup
 
 libOS = library_dependency("libOS", aliases=["libOS-6"])
-version = "2.9.2"
+version = "2.10.0"
 
 provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz"),
     [libOS], os = :Unix)
@@ -35,8 +35,8 @@ patchdir = BinDeps.depsdir(libOS)
 builddir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version", "build")
 
 ENV2 = copy(ENV)
-@unix_only ENV2["PKG_CONFIG_PATH"] = joinpath(cbclibdir, "pkgconfig") *
-    ":" * joinpath(ipoptlibdir, "pkgconfig")
+@unix_only ENV2["PKG_CONFIG_PATH"] = string(joinpath(cbclibdir, "pkgconfig"),
+    ":", joinpath(ipoptlibdir, "pkgconfig"))
 cbcincdir = joinpath(cbclibdir, "..", "include", "coin")
 
 provides(SimpleBuild,
@@ -45,9 +45,10 @@ provides(SimpleBuild,
         CreateDirectory(builddir, true)
         @build_steps begin
             ChangeDirectory(builddir)
-            `cat $patchdir/os-printlevel.patch` |> `patch -p1 -d ..`
-            setenv(`../configure --prefix=$prefix --enable-dependency-linking
-                coin_skip_warn_cflags=yes coin_skip_warn_cxxflags=yes coin_skip_warn_fflags=yes
+            pipeline(`cat $patchdir/os-printlevel.patch`, `patch -p1 -d ..`)
+            pipeline(`cat $patchdir/os-initialconditions.patch`, `patch -p1 -d ..`)
+            setenv(`../configure --prefix=$prefix coin_skip_warn_cflags=yes
+                coin_skip_warn_cxxflags=yes coin_skip_warn_fflags=yes
                 --with-coinutils-lib="-L$cbclibdir -lCoinUtils"
                 --with-coinutils-incdir=$cbcincdir
                 --with-osi-lib="-L$cbclibdir -lOsi -lCoinUtils"
@@ -68,4 +69,4 @@ provides(SimpleBuild,
         end
     end), [libOS], os = :Unix)
 
-@BinDeps.install [:libOS => :libOS]
+@BinDeps.install Dict([(:libOS, :libOS)])

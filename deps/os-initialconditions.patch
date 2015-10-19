@@ -1,0 +1,384 @@
+diff --git a/OS/src/OSSolverInterfaces/OSBonminSolver.cpp b/OS/src/OSSolverInterfaces/OSBonminSolver.cpp
+index 3c22ad3..8a17ae4 100644
+--- a/OS/src/OSSolverInterfaces/OSBonminSolver.cpp
++++ b/OS/src/OSSolverInterfaces/OSBonminSolver.cpp
+@@ -672,6 +672,12 @@ void BonminSolver::buildSolverInstance() throw (ErrorClass)
+ 	if (osinstance->getObjectiveNumber() > 1)
+     		throw ErrorClass("Solver cannot handle multiple objectives --- please delete all but one");
+ 
++        if(osoption == NULL && osol.length() > 0)
++        {
++            m_osolreader = new OSoLReader();
++            osoption = m_osolreader->readOSoL( osol);
++        }
++
+         // Create a new instance of your nlp
+         tminlp = new BonminProblem( osinstance, osoption);
+         this->bCallbuildSolverInstance = true;
+@@ -736,12 +742,6 @@ void BonminSolver::setSolverOptions() throw (ErrorClass)
+         {
+             tminlp->printSolutionAtEndOfAlgorithm();
+         }
+-        //
+-        if(osoption == NULL && osol.length() > 0)
+-        {
+-            m_osolreader = new OSoLReader();
+-            osoption = m_osolreader->readOSoL( osol);
+-        }
+ 
+         if(osoption != NULL && osoption->getNumberOfSolverOptions() > 0 )
+         {
+diff --git a/OS/src/OSSolverInterfaces/OSCoinSolver.cpp b/OS/src/OSSolverInterfaces/OSCoinSolver.cpp
+index 492e411..b51c133 100644
+--- a/OS/src/OSSolverInterfaces/OSCoinSolver.cpp
++++ b/OS/src/OSSolverInterfaces/OSCoinSolver.cpp
+@@ -156,11 +156,16 @@ void CoinSolver::buildSolverInstance() throw (ErrorClass)
+             m_osilreader = new OSiLReader();
+             osinstance = m_osilreader->readOSiL( osil);
+         }
++        if(osoption == NULL && osol.length() > 0)
++        {
++            m_osolreader = new OSoLReader();
++            osoption = m_osolreader->readOSoL( osol);
++        }
+         finish = clock();
+         duration = (double) (finish - start) / CLOCKS_PER_SEC;
+ 
+-    // Can't handle multiobjective problems properly --- especially nonlinear ones
+-    if (osinstance->getObjectiveNumber() > 1)
++        // Can't handle multiobjective problems properly --- especially nonlinear ones
++        if (osinstance->getObjectiveNumber() > 1)
+             throw ErrorClass("Solver cannot handle multiple objectives --- please delete all but one");
+ 
+         // get the type of solver requested from OSoL string
+@@ -539,13 +544,7 @@ void CoinSolver::setSolverOptions() throw (ErrorClass)
+     // read option string if necessary
+     try
+     {
+-        if(osoption == NULL && osol.length() > 0)
+-        {
+-            m_osolreader = new OSoLReader();
+-            osoption = m_osolreader->readOSoL( osol);
+-        }
+-
+-// Process any options found
++        // Process any options found
+         if(osoption != NULL)
+         {
+             int i;
+diff --git a/OS/src/OSSolverInterfaces/OSCouenneSolver.cpp b/OS/src/OSSolverInterfaces/OSCouenneSolver.cpp
+index c3b2536..2551edc 100644
+--- a/OS/src/OSSolverInterfaces/OSCouenneSolver.cpp
++++ b/OS/src/OSSolverInterfaces/OSCouenneSolver.cpp
+@@ -156,13 +156,19 @@ void CouenneSolver::buildSolverInstance() throw (ErrorClass)
+             osinstance = m_osilreader->readOSiL( osil);
+         }
+ 
++        if(osoption == NULL && osol.length() > 0)
++        {
++            m_osolreader = new OSoLReader();
++            osoption = m_osolreader->readOSoL( osol);
++        }
++
+         osinstance->initForAlgDiff( );
+         //Ipopt::Journalist* jnlst = new Ipopt::Journalist();
+         //jnlst->AddFileJournal("console", "stdout", J_STRONGWARNING);
+         //couenne = new CouenneProblem(NULL, NULL, jnlst);
+         couenne = new CouenneProblem(NULL, NULL, NULL);
+         int n_allvars = osinstance->getVariableNumber();
+-        if( n_allvars < 0 )throw ErrorClass("Couenne solver Cannot have a negatiave number of Variables");
++        if( n_allvars < 0 )throw ErrorClass("Couenne solver Cannot have a negative number of Variables");
+ #ifndef NDEBUG
+         outStr.str("");
+         outStr.clear();
+@@ -226,7 +232,6 @@ void CouenneSolver::buildSolverInstance() throw (ErrorClass)
+             }
+         }
+ 
+-
+         ScalarExpressionTree* exptree = osinstance->getNonlinearExpressionTree( -1);
+         if (exptree != NULL)
+         {
+@@ -450,11 +455,6 @@ void CouenneSolver::setSolverOptions() throw (ErrorClass)
+         //turn off a lot of output -- this can be overridden by using OSOptions
+         couenneSetup.options()->SetIntegerValue("bonmin.bb_log_level", 0);
+         couenneSetup.options()->SetIntegerValue("bonmin.nlp_log_level", 0 );
+-        if(osoption == NULL && osol.length() > 0)
+-        {
+-            m_osolreader = new OSoLReader();
+-            osoption = m_osolreader->readOSoL( osol);
+-        }
+ 
+         if(osoption != NULL && osoption->getNumberOfSolverOptions() > 0 )
+         {
+@@ -527,22 +527,10 @@ void CouenneSolver::solve() throw (ErrorClass)
+     if(this->bSetSolverOptions == false) setSolverOptions() ;
+     try
+     {
+-
+-        //couenne->print();
+-
+         char **argv = NULL;
+ 
+ 	bb.setProblem(couenne);
+ 
+-        //using namespace Ipopt;
+-
+-        if(osoption == NULL  && osol.length() > 0)
+-        {
+-            m_osolreader = new OSoLReader();
+-            osoption = m_osolreader->readOSoL( osol);
+-        }
+-
+-
+         tminlp = new BonminProblem( osinstance, osoption);
+ 
+         CouenneInterface *ci = NULL;
+@@ -566,7 +554,6 @@ void CouenneSolver::solve() throw (ErrorClass)
+         bool setupInit = false;
+         setupInit = couenneSetup.InitializeCouenne(argv, couenne, NULL, ci);
+ 
+-
+         if(setupInit == false)
+         {
+             std::string solutionDescription = "";
+@@ -591,7 +578,6 @@ void CouenneSolver::solve() throw (ErrorClass)
+             osresult->setGeneralStatusType("normal");
+             osrl = osrlwriter->writeOSrL( osresult);
+             return;
+-
+         }
+ 
+         osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces, ENUM_OUTPUT_LEVEL_info, " \n\n");
+@@ -632,7 +618,6 @@ void CouenneSolver::solve() throw (ErrorClass)
+             cg = dynamic_cast <CouenneCutGenerator *>
+                  (bb.model (). cutGenerators () [0] -> generator ());
+ 
+-
+         double global_opt;
+         couenneSetup.options () -> GetNumericValue ("couenne_check", global_opt, "couenne.");
+         double timeLimit = 0;
+@@ -762,14 +747,13 @@ void CouenneSolver::writeResult()
+                 // okay if equal to 9999000000000 we are probably unbounded
+                 if(fabs(*(z + 0)) == 9.999e+12)
+                 {
+-                    solutionDescription = "CONTINUOUS_UNBOUNDED [COUENNE]: Continuous relaxation is unbounded, the MINLP may or may not be 		unbounded.";
++                    solutionDescription = "CONTINUOUS_UNBOUNDED [COUENNE]: Continuous relaxation is unbounded, the MINLP may or may not be unbounded.";
+                     osresult->setSolutionStatus(solIdx,  "error", solutionDescription);
+                     break;
+                 }
+                 osresult->setObjectiveValuesDense(solIdx, z);
+             }
+ 
+-
+             if(osinstance->getVariableNumber() > 0)
+             {
+                 for(i=0; i < osinstance->getVariableNumber(); i++)
+diff --git a/OS/src/OSSolverInterfaces/OSDefaultSolver.cpp b/OS/src/OSSolverInterfaces/OSDefaultSolver.cpp
+index 7705ea6..2ba7a2c 100644
+--- a/OS/src/OSSolverInterfaces/OSDefaultSolver.cpp
++++ b/OS/src/OSSolverInterfaces/OSDefaultSolver.cpp
+@@ -4,7 +4,7 @@
+  * @author  Robert Fourer, Horand Gassmann, Jun Ma, Kipp Martin
+  *
+  * \remarks
+- * Copyright (C) 2005-2011, Robert Fourer, Horand Gassmann, Jun Ma, Kipp Martin,
++ * Copyright (C) 2005-2015, Robert Fourer, Horand Gassmann, Jun Ma, Kipp Martin,
+  * Northwestern University, and the University of Chicago.
+  * All Rights Reserved.
+  * This software is licensed under the Eclipse Public License.
+@@ -30,23 +30,18 @@ DefaultSolver::DefaultSolver():
+     sSolverName(""),
+     bCallbuildSolverInstance( false),
+     bSetSolverOptions( false)
+-
+ {
+-
+-
++#ifndef NDEBUG
++    osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces,
++                      ENUM_OUTPUT_LEVEL_debug, "Default Solver constructor called");
++#endif
+ }
+ 
+ DefaultSolver::~DefaultSolver()
+ {
+ #ifndef NDEBUG
+-    osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces, ENUM_OUTPUT_LEVEL_debug, "Default Solver destructor called");
++    osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces,
++                      ENUM_OUTPUT_LEVEL_debug, "Default Solver destructor called");
+ #endif
+-    /* we do not delete osinstance since it is not newed in any
+-     * of the solvers, it is newed elesewhere and deleted elsewhere
+-     */
+-    //if(osinstance != NULL) delete osinstance;
+-    //osinstance = NULL;
+-    //if(osresult != NULL) delete osresult;
+-    //osresult = NULL;
+ }
+ 
+diff --git a/OS/src/OSSolverInterfaces/OSDefaultSolver.h b/OS/src/OSSolverInterfaces/OSDefaultSolver.h
+index fd5f6ee..dcac9cd 100644
+--- a/OS/src/OSSolverInterfaces/OSDefaultSolver.h
++++ b/OS/src/OSSolverInterfaces/OSDefaultSolver.h
+@@ -1,10 +1,10 @@
+ /* $Id: OSDefaultSolver.h 4562 2013-01-02 12:31:12Z Gassmann $ */
+ /** @file DefaultSolver.h
+  *
+- * @author  Robert Fourer, Horand Gassmann, Jun Ma, Kipp Martin,
++ * @author  Robert Fourer, Horand Gassmann, Jun Ma, Kipp Martin
+  *
+  * \remarks
+- * Copyright (C) 2005-2011, Robert Fourer, Horand Gassmann, Jun Ma, Kipp Martin,
++ * Copyright (C) 2005-2015, Robert Fourer, Horand Gassmann, Jun Ma, Kipp Martin,
+  * Northwestern University, and the University of Chicago.
+  * All Rights Reserved.
+  * This software is licensed under the Eclipse Public License.
+@@ -12,15 +12,12 @@
+  *
+  */
+ 
+-
+-
+ #ifndef DEFAULTSOLVER
+ #define DEFAULTSOLVER
+ 
+-
+ #include "OSInstance.h"
+-#include "OSResult.h"
+ #include "OSOption.h"
++#include "OSResult.h"
+ 
+ #include <string>
+ 
+@@ -36,16 +33,12 @@ class DefaultSolver
+ {
+ 
+ public:
+-
+-
+-
+     /** osil holds the problem instance as a std::string */
+     std::string osil;
+ 
+     /** osol holds the options for the solver */
+     std::string osol;
+ 
+-
+     /** osrl holds the solution or result of the model */
+     std::string osrl;
+ 
+@@ -53,35 +46,29 @@ public:
+     /** osinstance holds the problem instance in-memory as an OSInstance object */
+     OSInstance *osinstance;
+ 
+-
+     /** osoption holds the solver options in-memory as an OSOption object */
+     OSOption  *osoption;
+ 
+     /** osresult holds the solution or result of the model in-memory as an OSResult object */
+     OSResult  *osresult;
+ 
+-
+-
+     /**
+-     * sSolverName is the name of the Coin solver used, e.g. glpk, or clp
++     * sSolverName is the name of the Coin solver used, e.g. ipopt, or clp
+      */
+     std::string sSolverName;
+ 
+-
+     /**
+      * bCallbuildSolverInstance is set to true if buildSolverService has
+      * been called
+      */
+     bool bCallbuildSolverInstance;
+ 
+-
+     /**
+      * bSetSolverOptions is set to true if setSolverOptions has
+      * been called, false otherwise
+      */
+     bool bSetSolverOptions;
+ 
+-
+     /** solve is a virtual function -- the actual solvers will
+      * implement their own solve method
+      */
+@@ -107,14 +94,7 @@ public:
+     /**
+      * default destructor.
+      */
+-    virtual	~DefaultSolver() = 0;
+-
+-
+-
+-
+-
+-
+-
++    virtual ~DefaultSolver() = 0;
+ };
+ 
+ 
+diff --git a/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp b/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp
+index 2b1bcc1..53553b8 100644
+--- a/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp
++++ b/OS/src/OSSolverInterfaces/OSIpoptSolver.cpp
+@@ -32,8 +32,8 @@ using namespace Ipopt;
+ IpoptSolver::IpoptSolver()
+ {
+ #ifndef NDEBUG
+-    osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces, ENUM_OUTPUT_LEVEL_debug, 
+-        "inside IpoptSolver constructor\n");
++    osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces,
++                      ENUM_OUTPUT_LEVEL_debug, "inside IpoptSolver constructor\n");
+ #endif
+     osrlwriter = new OSrLWriter();
+     osresult = new OSResult();
+@@ -45,8 +45,8 @@ IpoptSolver::IpoptSolver()
+ IpoptSolver::~IpoptSolver()
+ {
+ #ifndef NDEBUG
+-    osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces, ENUM_OUTPUT_LEVEL_debug, 
+-        "inside IpoptSolver destructor\n");
++    osoutput->OSPrint(ENUM_OUTPUT_AREA_OSSolverInterfaces,
++                      ENUM_OUTPUT_LEVEL_debug, "inside IpoptSolver destructor\n");
+ #endif
+     if(m_osilreader != NULL) delete m_osilreader;
+     m_osilreader = NULL;
+@@ -869,6 +869,12 @@ void IpoptSolver::buildSolverInstance() throw (ErrorClass)
+         if (osinstance->getObjectiveNumber() > 1)
+             throw ErrorClass("Solver cannot handle multiple objectives --- please delete all but one");
+ 
++        if(osoption == NULL && osol.length() > 0)
++        {
++            m_osolreader = new OSoLReader();
++            osoption = m_osolreader->readOSoL( osol);
++        }
++
+         // Create a new instance of your nlp
+         nlp = new IpoptProblem( osinstance, osoption, osresult, ipoptErrorMsg);
+         app = new IpoptApplication();
+@@ -923,13 +929,6 @@ void IpoptSolver::setSolverOptions() throw (ErrorClass)
+         }
+         /* end of the default options, now get options from OSoL */
+ 
+-
+-        if(osoption == NULL && osol.length() > 0)
+-        {
+-            m_osolreader = new OSoLReader();
+-            osoption = m_osolreader->readOSoL( osol);
+-        }
+-
+         if( osoption != NULL  &&  osoption->getNumberOfSolverOptions() > 0 )
+         {
+ #ifndef NDEBUG
+@@ -1006,7 +1005,6 @@ void IpoptSolver::setSolverOptions() throw (ErrorClass)
+ }//end setSolverOptions()
+ 
+ 
+-
+ void IpoptSolver::solve() throw (ErrorClass)
+ {
+     std::ostringstream outStr;

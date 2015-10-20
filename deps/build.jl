@@ -10,7 +10,7 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
 
 @windows_only begin
     using WinRPM
-    push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.1")
+    push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.2")
     WinRPM.update()
     provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
     cbclibdir = joinpath(WinRPM.installdir, "usr", Sys.MACHINE, "sys-root", "mingw", "bin")

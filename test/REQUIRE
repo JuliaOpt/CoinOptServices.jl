@@ -1,2 +1,3 @@
-JuMP
+JuMP 0.7 0.10
+# TODO: remove jump upper bound if #6 can be fixed
 FactCheck

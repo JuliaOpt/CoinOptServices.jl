@@ -15,6 +15,7 @@ cache:
 addons:
   apt_packages:
   - gfortran
+  - gist
 env:
   - MAKEFLAGS="-j3"
     LD_LIBRARY_PATH=$HOME/usr/lib
@@ -23,6 +24,7 @@ script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.build("CoinOptServices")' > stdout.log
+  - if [ `uname` = "Darwin" ]; then brew install gist; fi
   - gist stdout.log
   - julia -e 'Pkg.test("CoinOptServices")'
 before_cache:

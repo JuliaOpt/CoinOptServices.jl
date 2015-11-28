@@ -24,7 +24,7 @@ script:
   - julia -e 'Pkg.clone(pwd())'
   - julia -e 'Pkg.build("CoinOptServices")' > stdout.log
   - gem install --user-install gist
-  - `gem which gist` stdout.log
+  - $(gem which gist) stdout.log
   - julia -e 'Pkg.test("CoinOptServices")'
 before_cache:
   - cp -R $HOME/.julia/*/Cbc/deps/usr $HOME

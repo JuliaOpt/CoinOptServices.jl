@@ -20,11 +20,9 @@ end
 @osx_only begin
     using Homebrew
     provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
-    cbclibdir = joinpath(Homebrew.prefix(), "lib")
-    ipoptlibdir = cbclibdir
 end
 
-@linux_only begin
+@unix_only begin
     for dep in ("Cbc", "Ipopt")
         depsjl = Pkg.dir(dep, "deps", "deps.jl")
         isfile(depsjl) ? include(depsjl) : error("$dep not properly ",

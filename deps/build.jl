@@ -13,26 +13,20 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
     push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.2")
     WinRPM.update()
     provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
-    cbclibdir = joinpath(WinRPM.installdir, "usr", Sys.MACHINE, "sys-root", "mingw", "bin")
-    ipoptlibdir = cbclibdir
 end
 
 @osx_only begin
     using Homebrew
     provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
-    cbclibdir = joinpath(Homebrew.prefix(), "lib")
-    ipoptlibdir = cbclibdir
 end
 
-@linux_only begin
-    for dep in ("Cbc", "Ipopt")
-        depsjl = Pkg.dir(dep, "deps", "deps.jl")
-        isfile(depsjl) ? include(depsjl) : error("$dep not properly ",
-            "installed. Please run\nPkg.build(\"$dep\")")
-    end
-    cbclibdir = dirname(libcbcsolver)
-    ipoptlibdir = dirname(libipopt)
+for dep in ("Cbc", "Ipopt")
+    depsjl = Pkg.dir(dep, "deps", "deps.jl")
+    isfile(depsjl) ? include(depsjl) : error("$dep not properly ",
+        "installed. Please run\nPkg.build(\"$dep\")")
 end
+cbclibdir = dirname(libcbcsolver)
+ipoptlibdir = dirname(libipopt)
 
 prefix = joinpath(BinDeps.depsdir(libOS), "usr")
 patchdir = BinDeps.depsdir(libOS)

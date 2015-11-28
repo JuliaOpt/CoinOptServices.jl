@@ -19,9 +19,13 @@ env:
   - MAKEFLAGS="-j3"
     LD_LIBRARY_PATH=$HOME/usr/lib
 # uncomment the following lines to override the default test script
-#script:
-#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("CoinOptServices"); Pkg.test("CoinOptServices")'
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.clone(pwd())'
+  - julia -e 'Pkg.build("CoinOptServices")' > stdout.log
+  - gem install gist
+  - gist stdout.log || echo empty
+  - julia -e 'Pkg.test("CoinOptServices")'
 before_cache:
   - cp -R $HOME/.julia/*/Cbc/deps/usr $HOME
   - cp -R $HOME/.julia/*/Ipopt/deps/usr $HOME

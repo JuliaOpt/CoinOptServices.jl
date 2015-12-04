@@ -68,8 +68,8 @@ function initialize_quadcoefs!(m::OsilMathProgModel)
     # return numberOfQuadraticTerms if quadraticCoefficients has been
     # created, otherwise create quadraticCoefficients and return 0
     if isdefined(m, :quadraticCoefficients)
-        return @compat(parse(Int, attribute(m.quadraticCoefficients,
-            "numberOfQuadraticTerms")))
+        return parse(Int, attribute(m.quadraticCoefficients,
+            "numberOfQuadraticTerms"))
     else
         m.quadraticCoefficients = new_child(m.instanceData,
             "quadraticCoefficients")
@@ -257,8 +257,8 @@ function MathProgBase.addvar!(m::OsilMathProgModel, lb, ub, objcoef)
     push!(m.xu, ub)
     newvar!(m.variables, lb, ub)
     if objcoef != 0.0
-        set_attribute(m.obj, "numberOfObjCoef", @compat(parse(Int,
-            attribute(m.obj, "numberOfObjCoef"))) + 1)
+        set_attribute(m.obj, "numberOfObjCoef", parse(Int,
+            attribute(m.obj, "numberOfObjCoef"))) + 1
         # use old numberOfVariables since OSiL is 0-based
         newobjcoef!(m.obj, m.numberOfVariables, objcoef)
     end
@@ -290,8 +290,8 @@ function MathProgBase.addconstr!(m::OsilMathProgModel, varidx, coef, lb, ub)
             rowstarts = find_element(linConstrCoefs, "start")
             colIdx = find_element(linConstrCoefs, "colIdx")
             values = find_element(linConstrCoefs, "value")
-            numberOfValues = @compat(parse(Int,
-                attribute(linConstrCoefs, "numberOfValues")))
+            numberOfValues = parse(Int,
+                attribute(linConstrCoefs, "numberOfValues"))
         end
     end
     numdupes = 0
@@ -403,4 +403,32 @@ end
 
 # TODO: setquadconstrRHS!, getconstrsolution, getconstrmatrix, getrawsolver,
 # getsolvetime, sos constraints, basis, infeasibility/unbounded rays?
+
+# General wrapper functions
+for f in [:getsolution,:getobjval,:optimize!,:status,:getsense,:numvar,:numconstr,:getvartype,:getreducedcosts,:getconstrduals]
+    @eval $f(m::OsilNonlinearModel) = $f(m.inner)
+    @eval $f(m::OsilLinearQuadraticModel) = $f(m.inner)
+end
+for f in [:setsense!,:setvartype!,:setwarmstart!]
+    @eval $f(m::OsilNonlinearModel, x) = $f(m.inner, x)
+    @eval $f(m::OsilLinearQuadraticModel, x) = $f(m.inner, x)
+end
+
+# LinearQuadratic wrapper functions
+for f in [:numlinconstr,:numquadconstr,:getquadconstrduals,:getvarLB,:getvarUB,:getconstrLB,:getconstrUB,:getobj]
+    @eval $f(m::OsilLinearQuadraticModel) = $f(m.inner)
+end
+for f in [:setobj!,:setvarLB!,:setvarUB!,:setconstrLB!,:setconstrUB!]
+    @eval $f(m::OsilLinearQuadraticModel, x) = $f(m.inner, x)
+end
+for f in [:addvar!, :setquadobjterms!]
+    @eval $f(m::OsilLinearQuadraticModel, x, y, z) = $f(m.inner, x, y, z)
+end
+for f in [:addconstr!]
+    @eval $f(m::OsilLinearQuadraticModel, w, x, y, z) = $f(m.inner, w, x, y, z)
+end
+for f in [:addquadconstr!]
+    @eval $f(m::OsilLinearQuadraticModel, a, b, c, d, e, f, g) =
+        $f(m.inner, a, b, c, d, e, f, g)
+end
 

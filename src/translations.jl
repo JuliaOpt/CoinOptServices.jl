@@ -1,11 +1,11 @@
-jl2osnl_varargs = @compat Dict(
+jl2osnl_varargs = Dict(
     :+     => "sum",
     :*     => "product")
 
 jl2osnl_ternary = copy(jl2osnl_varargs)
 jl2osnl_ternary[:ifelse] = "if"
 
-jl2osnl_binary = @compat Dict(
+jl2osnl_binary = Dict(
     :+     => "plus",
     :.+    => "plus",
     :-     => "minus",
@@ -22,7 +22,7 @@ jl2osnl_binary = @compat Dict(
     :.^    => "power",
     :log   => "log")
 
-jl2osnl_unary = @compat Dict(
+jl2osnl_unary = Dict(
     :-     => "negate",
     :√     => "sqrt",
     :abs2  => "square",
@@ -48,7 +48,7 @@ for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
     jl2osnl_unary[op] = string(op)
 end
 
-jl2osnl_comparison = @compat Dict(
+jl2osnl_comparison = Dict(
     :<     => "lt",
     :<=    => "leq",
     :≤     => "leq",
@@ -60,11 +60,11 @@ jl2osnl_comparison = @compat Dict(
     :≠     => "neq")
 # and, or, xor, not?
 
-jl2osil_vartypes = @compat Dict(:Cont => "C", :Int => "I", :Bin => "B",
+jl2osil_vartypes = Dict(:Cont => "C", :Int => "I", :Bin => "B",
     :SemiCont => "D", :SemiInt => "J", :Fixed => "C")
 # assuming lb == ub for all occurrences of :Fixed vars
 
-osrl2jl_status = @compat Dict(
+osrl2jl_status = Dict(
     "unbounded" => :Unbounded,
     "globallyOptimal" => :Optimal,
     "locallyOptimal" => :Optimal,
@@ -174,7 +174,7 @@ end
 function expr2osnl!(parent, ex)
     # for anything not an Expr, assume it's a constant number
     child = new_child(parent, "number")
-    set_attribute(child, "value", @compat Float64(ex))
+    set_attribute(child, "value", Float64(ex))
     return child
 end
 
@@ -245,12 +245,12 @@ function xml2vec(el::XMLElement, n::Integer, defaultval=NaN)
     x = fill(defaultval, n)
     indicator = fill(false, n)
     for child in child_elements(el)
-        idx = @compat parse(Int, attribute(child, "idx")) + 1 # OSiL is 0-based
+        idx = parse(Int, attribute(child, "idx")) + 1 # OSiL is 0-based
         if indicator[idx] # combine duplicates
-            x[idx] += @compat parse(Float64, content(child))
+            x[idx] += parse(Float64, content(child))
         else
             indicator[idx] = true
-            x[idx] = @compat parse(Float64, content(child))
+            x[idx] = parse(Float64, content(child))
         end
     end
     return x

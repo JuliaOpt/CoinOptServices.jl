@@ -1,6 +1,6 @@
 module CoinOptServices
 
-using MathProgBase, LightXML, Compat
+using MathProgBase, LightXML
 importall MathProgBase.SolverInterface
 
 debug = true # (ccall(:jl_is_debugbuild, Cint, ()) == 1)
@@ -129,9 +129,20 @@ type OsilMathProgModel <: AbstractMathProgModel
     OsilMathProgModel(solver, osil, osol, osrl, printLevel, options) =
         new(solver, osil, osol, osrl, printLevel, options)
 end
+immutable OsilLinearQuadraticModel <: AbstractLinearQuadraticModel
+    inner::OsilMathProgModel
+end
+immutable OsilNonlinearModel <: AbstractLinearQuadraticModel
+    inner::OsilMathProgModel
+end
 
-MathProgBase.model(s::OsilSolver) = OsilMathProgModel(s.solver,
+OsilMathProgModel(s::OsilSolver) = OsilMathProgModel(s.solver,
     s.osil, s.osol, s.osrl, s.printLevel, s.options)
+LinearQuadraticModel(s::OsilSolver) = OsilLinearQuadraticModel(
+    OsilMathProgModel(s))
+NonlinearModel(s::OsilSolver) = OsilNonlinearModel(
+    OsilMathProgModel(s))
+ConicModel(s::OsilSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
 
 include("probmod.jl")
 
@@ -190,8 +201,9 @@ function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     return m
 end
 
-function MathProgBase.loadproblem!(m::OsilMathProgModel,
+function MathProgBase.loadproblem!(outer::OsilLinearQuadraticModel,
         A, xl, xu, f, cl, cu, objsense)
+    m = outer.inner
     # populate osil data that is specific to linear problems
     @assertequal(size(A, 1), length(cl))
     @assertequal(size(A, 2), length(xl))
@@ -227,9 +239,10 @@ function MathProgBase.loadproblem!(m::OsilMathProgModel,
     return m
 end
 
-function MathProgBase.loadnonlinearproblem!(m::OsilMathProgModel,
+function MathProgBase.loadproblem!(outer::OsilNonlinearModel,
         numberOfVariables, numberOfConstraints, xl, xu, cl, cu, objsense,
         d::MathProgBase.AbstractNLPEvaluator)
+    m = outer.inner
     # populate osil data that is specific to nonlinear problems
     @assert numberOfVariables == length(xl)
     @assert numberOfConstraints == length(cl)
@@ -386,10 +399,10 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
     xroot = root(xdoc)
     # do something with general/generalStatus ?
     optimization = find_element(xroot, "optimization")
-    @assertequal(@compat(parse(Int, attribute(optimization,
-        "numberOfVariables"))), m.numberOfVariables)
-    @assertequal(@compat(parse(Int, attribute(optimization,
-        "numberOfConstraints"))), m.numberOfConstraints)
+    @assertequal(parse(Int, attribute(optimization, "numberOfVariables")),
+        m.numberOfVariables)
+    @assertequal(parse(Int, attribute(optimization, "numberOfConstraints")),
+        m.numberOfConstraints)
     numberOfSolutions = attribute(optimization, "numberOfSolutions")
     if numberOfSolutions != "1"
         warn("numberOfSolutions expected to be 1, was $numberOfSolutions")
@@ -432,7 +445,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
             "variables were present in $osrl")
     else
         varvalues = find_element(variables, "values")
-        @assertequal(@compat(parse(Int, attribute(varvalues, "numberOfVar"))),
+        @assertequal(parse(Int, attribute(varvalues, "numberOfVar")),
             m.numberOfVariables)
         m.solution = xml2vec(varvalues, m.numberOfVariables)
 
@@ -443,8 +456,8 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
             if name(child) == "other"
                 counter += 1
                 if attribute(child, "name") == "reduced_costs"
-                    @assertequal(@compat(parse(Int, attribute(child,
-                        "numberOfVar"))), m.numberOfVariables)
+                    @assertequal(parse(Int, attribute(child, "numberOfVar")),
+                        m.numberOfVariables)
                     if reduced_costs_found
                         warn("Overwriting existing reduced costs")
                     end
@@ -457,7 +470,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         if numberOfOther == nothing
             @assertequal(counter, 0)
         else
-            @assertequal(counter, @compat(parse(Int, numberOfOther)))
+            @assertequal(counter, parse(Int, numberOfOther))
         end
     end
 
@@ -472,8 +485,7 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         if numberOfObj != "1"
             warn("numberOfObj expected to be 1, was $numberOfObj")
         end
-        m.objval = @compat parse(Float64,
-            content(find_element(objvalues, "obj")))
+        m.objval = parse(Float64, content(find_element(objvalues, "obj")))
     end
 
     # constraint duals
@@ -482,8 +494,8 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
         m.constrduals = fill(NaN, m.numberOfConstraints)
     else
         dualValues = find_element(constraints, "dualValues")
-        @assertequal(@compat(parse(Int, attribute(dualValues,
-            "numberOfCon"))), m.numberOfConstraints)
+        @assertequal(parse(Int, attribute(dualValues, "numberOfCon")),
+            m.numberOfConstraints)
         if length(m.quadconidx) == 0
             m.constrduals = xml2vec(dualValues, m.numberOfConstraints)
         else

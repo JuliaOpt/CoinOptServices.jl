@@ -466,6 +466,9 @@ function read_osrl_file!(m::OsilMathProgModel, osrl)
                 end
             end
         end
+        if !reduced_costs_found
+            m.reducedcosts = fill(NaN, m.numberOfVariables)
+        end
         numberOfOther = attribute(variables, "numberOfOtherVariableResults")
         if numberOfOther == nothing
             @assertequal(counter, 0)

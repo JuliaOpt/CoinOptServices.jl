@@ -22,5 +22,15 @@ m = Model(solver = OsilSolver())
 
 solve(m)
 
+# Issue #13
+nvar = 10
+solver=OsilSolver(solver = "couenne")
+m = Model(solver=solver)
+@defVar(m, -10 <= x[i=1:nvar] <= 10)
+@setNLObjective(m, Min, sum{1/(1+exp(-x[i])), i=1:nvar})
+@addConstraint(m, sum{x[i], i=1:nvar} <= .4*nvar)
+@test solve(m) == :Optimal
+@test isapprox(getValue(x[1]),-10.0)
+
 
 include(Pkg.dir("JuMP","test","runtests.jl"))

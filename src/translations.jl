@@ -16,7 +16,7 @@ jl2osnl_binary = Dict(
     :./    => "divide",
     :div   => "quotient",
     :÷     => "quotient",
-    #:.÷    => "quotient", # 0.4 only?
+    :.÷    => "quotient",
     :rem   => "rem",
     :^     => "power",
     :.^    => "power",
@@ -43,7 +43,7 @@ jl2osnl_unary = Dict(
     :acsch => "arccsch")
 
 for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
-           :sin, :sinh, :cos, :cosh, :tan, :tanh,
+           :sin, :sinh, :cos, :cosh, :tanh, # :tan,
            :cot, :coth, :sec, :sech, :csc, :csch]
     jl2osnl_unary[op] = string(op)
 end

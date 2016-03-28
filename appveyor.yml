@@ -1,13 +1,17 @@
 environment:
   matrix:
-  - JULIAVERSION: "julianightlies/bin/winnt/x86/0.4/julia-0.4.4-d4d015664f-win32.exe"
+  - JULIAVERSION: "julialang/bin/winnt/x86/0.4/julia-0.4-latest-win32.exe"
     JULIAEXE: "julia"
-  - JULIAVERSION: "julianightlies/bin/winnt/x64/0.4/julia-0.4.4-d4d015664f-win64.exe"
+  - JULIAVERSION: "julialang/bin/winnt/x64/0.4/julia-0.4-latest-win64.exe"
     JULIAEXE: "julia"
-  - JULIAVERSION: "julianightlies/bin/winnt/x86/0.4/julia-0.4.4-d4d015664f-win32.exe"
-    JULIAEXE: "julia-debug"
-  - JULIAVERSION: "julianightlies/bin/winnt/x64/0.4/julia-0.4.4-d4d015664f-win64.exe"
-    JULIAEXE: "julia-debug"
+  - JULIAVERSION: "julianightlies/bin/winnt/x86/julia-latest-win32.exe"
+    JULIAEXE: "julia"
+  - JULIAVERSION: "julianightlies/bin/winnt/x64/julia-latest-win64.exe"
+    JULIAEXE: "julia"
+#  - JULIAVERSION: "julianightlies/bin/winnt/x86/0.4/julia-0.4.4-d4d015664f-win32.exe"
+#    JULIAEXE: "julia-debug"
+#  - JULIAVERSION: "julianightlies/bin/winnt/x64/0.4/julia-0.4.4-d4d015664f-win64.exe"
+#    JULIAEXE: "julia-debug"
 
 branches:
   only:
@@ -37,6 +41,7 @@ install:
 build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
+  - C:\projects\julia\bin\%JULIAEXE% -e "Pkg.clone(\"WinRPM\"); Pkg.checkout(\"WinRPM\", \"tk/gccdll\")"
   - C:\projects\julia\bin\%JULIAEXE% -e "versioninfo();
       Pkg.clone(pwd(), \"CoinOptServices\"); Pkg.build(\"CoinOptServices\")"
 

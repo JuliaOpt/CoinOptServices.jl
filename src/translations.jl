@@ -20,7 +20,17 @@ jl2osnl_binary = Dict(
     :rem   => "rem",
     :^     => "power",
     :.^    => "power",
-    :log   => "log")
+    :log   => "log",
+    :<     => "lt",
+    :<=    => "leq",
+    :≤     => "leq",
+    :>     => "gt",
+    :>=    => "geq",
+    :≥     => "geq",
+    :(==)  => "eq",
+    :!=    => "neq",
+    :≠     => "neq")
+# and, or, xor, not?
 
 jl2osnl_unary = Dict(
     :-     => "negate",
@@ -48,17 +58,19 @@ for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
     jl2osnl_unary[op] = string(op)
 end
 
-jl2osnl_comparison = Dict(
-    :<     => "lt",
-    :<=    => "leq",
-    :≤     => "leq",
-    :>     => "gt",
-    :>=    => "geq",
-    :≥     => "geq",
-    :(==)  => "eq",
-    :!=    => "neq",
-    :≠     => "neq")
-# and, or, xor, not?
+if VERSION < v"0.5.0-dev+3231"
+    jl2osnl_comparison = Dict(
+        :<     => "lt",
+        :<=    => "leq",
+        :≤     => "leq",
+        :>     => "gt",
+        :>=    => "geq",
+        :≥     => "geq",
+        :(==)  => "eq",
+        :!=    => "neq",
+        :≠     => "neq")
+    # and, or, xor, not?
+end
 
 jl2osil_vartypes = Dict(:Cont => "C", :Int => "I", :Bin => "B",
     :SemiCont => "D", :SemiInt => "J", :Fixed => "C")
@@ -155,7 +167,7 @@ function expr2osnl!(parent, ex::Expr)
     elseif head == :ref
         child = var2osnl!(parent, args)
     elseif head == :comparison
-        if numargs == 3
+        if VERSION < v"0.5.0-dev+3231" && numargs == 3
             if haskey(jl2osnl_comparison, args[2])
                 child = new_child(parent, jl2osnl_comparison[args[2]])
                 expr2osnl!(child, args[1])

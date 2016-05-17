@@ -132,7 +132,7 @@ end
 immutable OsilLinearQuadraticModel <: AbstractLinearQuadraticModel
     inner::OsilMathProgModel
 end
-immutable OsilNonlinearModel <: AbstractLinearQuadraticModel
+immutable OsilNonlinearModel <: AbstractNonlinearModel
     inner::OsilMathProgModel
 end
 

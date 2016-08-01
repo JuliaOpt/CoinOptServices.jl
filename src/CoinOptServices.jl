@@ -293,9 +293,16 @@ function MathProgBase.loadproblem!(outer::OsilNonlinearModel,
     end
     while nextrowlinear
         constrexpr = MathProgBase.constr_expr(d, row)
-        @assertequal(constrexpr.head, :comparison)
+
+        if VERSION < v"0.5.0-dev+3231"
+            @assertequal(constrexpr.head, :comparison)
+            constrlinpart = constrexpr.args[end - 2]
+        else
+            @assertequal(constrexpr.head, :call)
+            constrlinpart = constrexpr.args[2]
+        end
+
         #(lhs, rhs) = constr2bounds(constrexpr.args...)
-        constrlinpart = constrexpr.args[end - 2]
         @assertequal(constrlinpart.head, :call)
         constrlinargs = constrlinpart.args
         @assertequal(constrlinargs[1], :+)
@@ -341,9 +348,15 @@ function MathProgBase.loadproblem!(outer::OsilNonlinearModel,
             nl = new_child(nonlinearExpressions, "nl")
             set_attribute(nl, "idx", row - 1) # OSiL is 0-based
             constrexpr = MathProgBase.constr_expr(d, row)
-            @assertequal(constrexpr.head, :comparison)
             #(lhs, rhs) = constr2bounds(constrexpr.args...)
-            expr2osnl!(nl, constrexpr.args[end - 2])
+            if VERSION >= v"0.5.0-dev+3231" && constrexpr.head == :call
+                @assert(constrexpr.args[1] in [:<=, :(==), :>=])
+                constrpart = constrexpr.args[2]
+            else
+                @assertequal(constrexpr.head, :comparison)
+                constrpart = constrexpr.args[end - 2]
+            end
+            expr2osnl!(nl, constrpart)
         end
     end
 

@@ -8,14 +8,14 @@ version = "2.9.2"
 provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz"),
     [libOS], os = :Unix)
 
-@windows_only begin
+@static if is_windows()
     using WinRPM
     push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.2")
     WinRPM.update()
     provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
 end
 
-@osx_only begin
+@static if is_apple()
     using Homebrew
     provides(Homebrew.HB, "Optimizationservices", [libOS], os = :Darwin)
 end
@@ -33,8 +33,10 @@ patchdir = BinDeps.depsdir(libOS)
 builddir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version", "build")
 
 ENV2 = copy(ENV)
-@unix_only ENV2["PKG_CONFIG_PATH"] = string(joinpath(cbclibdir, "pkgconfig"),
+@static if is_unix()
+    ENV2["PKG_CONFIG_PATH"] = string(joinpath(cbclibdir, "pkgconfig"),
     ":", joinpath(ipoptlibdir, "pkgconfig"))
+end
 cbcincdir = joinpath(cbclibdir, "..", "include", "coin")
 
 provides(SimpleBuild,

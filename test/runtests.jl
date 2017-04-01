@@ -27,10 +27,10 @@ nvar = 10
 solver=OsilSolver(solver = "couenne")
 m = Model(solver=solver)
 @variable(m, -10 <= x[i=1:nvar] <= 10)
-@NLobjective(m, Min, sum{1/(1+exp(-x[i])), i=1:nvar})
-@constraint(m, sum{x[i], i=1:nvar} <= .4*nvar)
+@NLobjective(m, Min, sum(1/(1+exp(-x[i])) for i in 1:nvar))
+@constraint(m, sum(x[i] for i in 1:nvar) <= .4*nvar)
 @test solve(m) == :Optimal
-@test isapprox(getvalue(x[1]),-10.0)
+@test isapprox(getvalue(x[1]), -10.0)
 
 
 include(Pkg.dir("JuMP","test","runtests.jl"))

@@ -26,10 +26,10 @@ osildir = Pkg.dir("CoinOptServices", ".osil")
 
 export OsilSolver, OsilBonminSolver, OsilCouenneSolver, OSOption
 immutable OsilSolver <: AbstractMathProgSolver
-    solver::UTF8String
-    osil::UTF8String
-    osol::UTF8String
-    osrl::UTF8String
+    solver::String
+    osil::String
+    osol::String
+    osrl::String
     printLevel::Int
     options::Vector{Dict}
 end
@@ -89,10 +89,10 @@ OSOption(optname, optval; kwargs...) =
     OSOption(name = optname, value = optval; kwargs...)
 
 type OsilMathProgModel <: AbstractMathProgModel
-    solver::UTF8String
-    osil::UTF8String
-    osol::UTF8String
-    osrl::UTF8String
+    solver::String
+    osil::String
+    osol::String
+    osrl::String
     printLevel::Int
     options::Vector{Dict}
 

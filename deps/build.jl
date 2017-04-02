@@ -35,7 +35,7 @@ builddir = joinpath(BinDeps.depsdir(libOS), "src", "OS-$version", "build")
 ENV2 = copy(ENV)
 @static if is_unix()
     ENV2["PKG_CONFIG_PATH"] = string(joinpath(cbclibdir, "pkgconfig"),
-    ":", joinpath(ipoptlibdir, "pkgconfig"))
+        ":", joinpath(ipoptlibdir, "pkgconfig"))
 end
 cbcincdir = joinpath(cbclibdir, "..", "include", "coin")
 

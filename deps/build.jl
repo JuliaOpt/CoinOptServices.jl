@@ -10,7 +10,7 @@ provides(Sources, URI("http://www.coin-or.org/download/source/OS/OS-$version.tgz
 
 @static if is_windows()
     using WinRPM
-    push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_13.2")
+    push!(WinRPM.sources, "http://download.opensuse.org/repositories/home:/kelman:/mingw-coinor/openSUSE_Leap_42.2")
     WinRPM.update()
     provides(WinRPM.RPM, "OptimizationServices", [libOS], os = :Windows)
 end

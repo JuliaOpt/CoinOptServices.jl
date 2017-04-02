@@ -8,6 +8,7 @@ environment:
 branches:
   only:
     - master
+    - winrpm-42.2
     - /release-.*/
 
 notifications:

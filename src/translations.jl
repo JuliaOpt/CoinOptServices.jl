@@ -58,19 +58,6 @@ for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
     jl2osnl_unary[op] = string(op)
 end
 
-if VERSION < v"0.5.0-dev+3231"
-    jl2osnl_comparison = Dict(
-        :<     => "lt",
-        :<=    => "leq",
-        :≤     => "leq",
-        :>     => "gt",
-        :>=    => "geq",
-        :≥     => "geq",
-        :(==)  => "eq",
-        :!=    => "neq",
-        :≠     => "neq")
-    # and, or, xor, not?
-end
 
 jl2osil_vartypes = Dict(:Cont => "C", :Int => "I", :Bin => "B",
     :SemiCont => "D", :SemiInt => "J", :Fixed => "C")

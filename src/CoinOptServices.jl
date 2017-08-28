@@ -294,13 +294,8 @@ function MathProgBase.loadproblem!(outer::OsilNonlinearModel,
     while nextrowlinear
         constrexpr = MathProgBase.constr_expr(d, row)
 
-        if VERSION < v"0.5.0-dev+3231"
-            @assertequal(constrexpr.head, :comparison)
-            constrlinpart = constrexpr.args[end - 2]
-        else
-            @assertequal(constrexpr.head, :call)
-            constrlinpart = constrexpr.args[2]
-        end
+        @assertequal(constrexpr.head, :call)
+        constrlinpart = constrexpr.args[2]
 
         #(lhs, rhs) = constr2bounds(constrexpr.args...)
         @assertequal(constrlinpart.head, :call)

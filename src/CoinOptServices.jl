@@ -7,7 +7,7 @@ debug = true # (ccall(:jl_is_debugbuild, Cint, ()) == 1)
 if debug
     macro assertequal(x, y)
         msg = "Expected $x == $y, got "
-        :($x == $y ? nothing : error($msg, repr($x), " != ", repr($y)))
+        :($(esc(x)) == $(esc(y)) ? nothing : error($msg, repr($(esc(x))), " != ", repr($(esc(y)))))
     end
 else
     macro assertequal(x, y)
@@ -148,10 +148,11 @@ include("probmod.jl")
 
 function create_osil_common!(m::OsilMathProgModel, xl, xu, cl, cu, objsense)
     # create osil data that is common between linear and nonlinear problems
-    @assertequal(length(xl), length(xu))
-    @assertequal(length(cl), length(cu))
     numberOfVariables = length(xl)
     numberOfConstraints = length(cl)
+    @assertequal numberOfVariables length(xu)
+    @assertequal numberOfConstraints length(cu)
+    
 
     m.numberOfVariables = numberOfVariables
     m.numberOfConstraints = numberOfConstraints

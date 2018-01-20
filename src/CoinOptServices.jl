@@ -345,8 +345,13 @@ function MathProgBase.loadproblem!(outer::OsilNonlinearModel,
             set_attribute(nl, "idx", row - 1) # OSiL is 0-based
             constrexpr = MathProgBase.constr_expr(d, row)
             #(lhs, rhs) = constr2bounds(constrexpr.args...)
-            @assert(constrexpr.args[1] in [:<=, :(==), :>=])
-            constrpart = constrexpr.args[2]
+            if constrexpr.head == :call
+                @assert(constrexpr.args[1] in [:<=, :(==), :>=])
+                constrpart = constrexpr.args[2]
+            else
+                @assertequal(constrexpr.head, :comparison)
+                constrpart = constrexpr.args[end - 2]
+            end
             expr2osnl!(nl, constrpart)
         end
     end

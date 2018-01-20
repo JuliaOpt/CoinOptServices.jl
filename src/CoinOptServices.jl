@@ -25,7 +25,7 @@ couenne = joinpath(dirname(libOS), "..", "bin", "couenne")
 osildir = Pkg.dir("CoinOptServices", ".osil")
 
 export OsilSolver, OsilBonminSolver, OsilCouenneSolver, OSOption
-immutable OsilSolver <: AbstractMathProgSolver
+struct OsilSolver <: AbstractMathProgSolver
     solver::String
     osil::String
     osol::String
@@ -88,7 +88,7 @@ end
 OSOption(optname, optval; kwargs...) =
     OSOption(name = optname, value = optval; kwargs...)
 
-type OsilMathProgModel <: AbstractMathProgModel
+mutable struct OsilMathProgModel <: AbstractMathProgModel
     solver::String
     osil::String
     osol::String
@@ -129,10 +129,10 @@ type OsilMathProgModel <: AbstractMathProgModel
     OsilMathProgModel(solver, osil, osol, osrl, printLevel, options) =
         new(solver, osil, osol, osrl, printLevel, options)
 end
-immutable OsilLinearQuadraticModel <: AbstractLinearQuadraticModel
+struct OsilLinearQuadraticModel <: AbstractLinearQuadraticModel
     inner::OsilMathProgModel
 end
-immutable OsilNonlinearModel <: AbstractNonlinearModel
+struct OsilNonlinearModel <: AbstractNonlinearModel
     inner::OsilMathProgModel
 end
 

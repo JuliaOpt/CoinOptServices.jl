@@ -58,20 +58,6 @@ for op in [:abs, :sqrt, :floor, :factorial, :exp, :sign, :erf,
     jl2osnl_unary[op] = string(op)
 end
 
-if VERSION < v"0.5.0-dev+3231"
-    jl2osnl_comparison = Dict(
-        :<     => "lt",
-        :<=    => "leq",
-        :≤     => "leq",
-        :>     => "gt",
-        :>=    => "geq",
-        :≥     => "geq",
-        :(==)  => "eq",
-        :!=    => "neq",
-        :≠     => "neq")
-    # and, or, xor, not?
-end
-
 jl2osil_vartypes = Dict(:Cont => "C", :Int => "I", :Bin => "B",
     :SemiCont => "D", :SemiInt => "J", :Fixed => "C")
 # assuming lb == ub for all occurrences of :Fixed vars
@@ -167,17 +153,7 @@ function expr2osnl!(parent, ex::Expr)
     elseif head == :ref
         child = var2osnl!(parent, args)
     elseif head == :comparison
-        if VERSION < v"0.5.0-dev+3231" && numargs == 3
-            if haskey(jl2osnl_comparison, args[2])
-                child = new_child(parent, jl2osnl_comparison[args[2]])
-                expr2osnl!(child, args[1])
-                expr2osnl!(child, args[3])
-            else
-                error("Do not know how to convert comparison $(args[2]) to osnl")
-            end
-        else
-            error("Do not know how to convert comparisons with $numargs arguments to osnl")
-        end
+        error("Do not know how to convert comparisons with $numargs arguments to osnl")
     else
         error("Do not know how to handle expression $ex with head $head")
     end

@@ -83,7 +83,7 @@ CoinOptServices is usable as a solver in JuMP as follows.
     julia> m = Model(solver = OsilSolver())
 
 Then model and solve your optimization problem as usual. See
-[JuMP's documentation](http://jump.readthedocs.org/en/latest/) for more
+[JuMP's documentation](http://www.juliaopt.org/JuMP.jl/0.18/) for more
 details. The ``OsilSolver()`` constructor takes several optional keyword
 arguments. You can specify ``OsilSolver(solver = "couenne")`` to request
 a particular sub-solver, ``OsilSolver(osil = "/path/to/file.osil")`` or

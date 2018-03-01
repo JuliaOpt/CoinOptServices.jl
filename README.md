@@ -4,6 +4,19 @@ Linux, OSX: [![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.s
 
 Windows: [![Build Status](https://ci.appveyor.com/api/projects/status/github/JuliaOpt/CoinOptServices.jl?branch=master&svg=true)](https://ci.appveyor.com/project/tkelman/coinoptservices-jl/branch/master)
 
+**This package is deprecated because the latest release of Optimization Services
+(2.10.1) does not compile on recent compilers (e.g., GCC 6.3 and later). For
+access to Bonmin and Couenne, we recommend using the
+[AmplNLWriter](https://github.com/JuliaOpt/AmplNLWriter.jl) package directly.
+Linux and macOS users should compile Bonmin or Couenne locally with ASL support
+and point `AmplNLSolver` to the path of the respective solver binary. Windows
+users should continue to use the binaries installed through this package for now.
+We hope to have new Julia packages to install Bonmin and Couenne binaries soon.
+(Help is welcome!). Users may also consider trying out pure-Julia solvers that
+have similar functionality, e.g., [Pajarito](https://github.com/JuliaOpt/Pajarito.jl),
+[Katana](https://github.com/lanl-ansi/Katana.jl), [POD](https://github.com/lanl-ansi/POD.jl),
+and [Juniper](https://github.com/lanl-ansi/Juniper.jl).**
+
 This [Julia](https://github.com/JuliaLang/julia) package is an interface
 between [MathProgBase.jl](https://github.com/JuliaOpt/MathProgBase.jl) and
 [COIN-OR](http://www.coin-or.org) [Optimization Services (OS)](https://projects.coin-or.org/OS),

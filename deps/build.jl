@@ -46,6 +46,7 @@ provides(SimpleBuild,
         @build_steps begin
             ChangeDirectory(builddir)
             pipeline(`cat $patchdir/os-printlevel.patch`, `patch -p1 -d ..`)
+            pipeline(`cat $patchdir/ordered-compare-error.patch`, `patch -p1 -d ..`)
             setenv(`../configure --prefix=$prefix --enable-dependency-linking
                 coin_skip_warn_cflags=yes coin_skip_warn_cxxflags=yes coin_skip_warn_fflags=yes
                 --with-coinutils-lib="-L$cbclibdir -lCoinUtils"

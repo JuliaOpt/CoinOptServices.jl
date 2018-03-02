@@ -1,0 +1,11 @@
+--- /SYMPHONY/src/LP/lp_genfunc.c	2015-03-07 15:52:32.000000000 -0500
++++ /SYMPHONY/src/LP/lp_genfunc.c	2017-11-14 10:03:57.000000000 -0500
+@@ -2419,7 +2419,7 @@
+ 			     send_to_pool);
+       
+       should_stop_adding_cgl_cuts(p, i, &should_stop);
+-      if(i < 0 && num_cuts > 0) should_stop = TRUE;
++      if(i < 0 && *num_cuts > 0) should_stop = TRUE;
+       //}
+       if (should_stop == TRUE) {
+          break;

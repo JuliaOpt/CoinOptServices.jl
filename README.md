@@ -4,8 +4,8 @@ Linux, OSX: [![Build Status](https://travis-ci.org/JuliaOpt/CoinOptServices.jl.s
 
 Windows: [![Build Status](https://ci.appveyor.com/api/projects/status/github/JuliaOpt/CoinOptServices.jl?branch=master&svg=true)](https://ci.appveyor.com/project/tkelman/coinoptservices-jl/branch/master)
 
-**The build script for this package has known issues on macOS and Linux.
-The latest release of Optimization Services
+**The build script for this package has known issues on macOS and Linux that
+are difficult to address because the latest release of Optimization Services
 (2.10.1) does not compile on recent compilers (e.g., GCC 6.3 and later).
 If you are unable to install successfully, we recommend using
 [AmplNLWriter](https://github.com/JuliaOpt/AmplNLWriter.jl) for access to
